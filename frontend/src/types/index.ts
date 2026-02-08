@@ -55,6 +55,15 @@ export interface TransactionResponse {
 
 // ===== Categories =====
 
+export interface CreateCategoryRequest {
+  name: string
+  type: TransactionType
+}
+
+export interface UpdateCategoryRequest {
+  name: string
+}
+
 export interface CategoryResponse {
   id: number
   name: string
