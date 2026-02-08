@@ -4,6 +4,7 @@ import { useTransactionStore } from '@/stores/transaction'
 import { TransactionType } from '@/types'
 import type { TransactionResponse } from '@/types'
 import TransactionDialog from '@/components/TransactionDialog.vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const transactionStore = useTransactionStore()
 
@@ -31,6 +32,26 @@ function handleAdd() {
 function handleEdit(row: TransactionResponse) {
   editingTransaction.value = row
   dialogVisible.value = true
+}
+
+async function handleDelete(row: TransactionResponse) {
+  try {
+    await ElMessageBox.confirm(
+      `確定要刪除這筆${row.type === TransactionType.Income ? '收入' : '支出'}記錄嗎？（${row.categoryName} $${row.amount.toLocaleString()}）`,
+      '確認刪除',
+      {
+        confirmButtonText: '刪除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    )
+    const success = await transactionStore.deleteTransaction(row.id)
+    if (success) {
+      ElMessage.success('交易記錄已刪除')
+    }
+  } catch {
+    // 使用者取消刪除，不需處理
+  }
 }
 </script>
 
@@ -76,9 +97,15 @@ function handleEdit(row: TransactionResponse) {
       <el-table-column label="操作" width="150" fixed="right">
         <template #default="{ row }">
           <el-button type="primary" text size="small" @click="handleEdit(row)">編輯</el-button>
-          <el-button type="danger" text size="small">刪除</el-button>
+          <el-button type="danger" text size="small" @click="handleDelete(row)">刪除</el-button>
         </template>
       </el-table-column>
+
+      <template #empty>
+        <el-empty description="尚無交易記錄">
+          <el-button type="primary" @click="handleAdd">新增第一筆交易</el-button>
+        </el-empty>
+      </template>
     </el-table>
 
     <TransactionDialog
