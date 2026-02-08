@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useTransactionStore } from '@/stores/transaction'
 import { TransactionType } from '@/types'
+import type { TransactionResponse } from '@/types'
+import TransactionDialog from '@/components/TransactionDialog.vue'
 
 const transactionStore = useTransactionStore()
+
+const dialogVisible = ref(false)
+const editingTransaction = ref<TransactionResponse | null>(null)
 
 onMounted(() => {
   transactionStore.fetchTransactions()
@@ -17,13 +22,23 @@ function formatAmount(amount: number, type: TransactionType): string {
   const prefix = type === TransactionType.Income ? '+' : '-'
   return `${prefix} $${amount.toLocaleString()}`
 }
+
+function handleAdd() {
+  editingTransaction.value = null
+  dialogVisible.value = true
+}
+
+function handleEdit(row: TransactionResponse) {
+  editingTransaction.value = row
+  dialogVisible.value = true
+}
 </script>
 
 <template>
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
       <h1 style="margin: 0">交易記錄</h1>
-      <el-button type="primary">新增交易</el-button>
+      <el-button type="primary" @click="handleAdd">新增交易</el-button>
     </div>
 
     <el-table
@@ -59,11 +74,16 @@ function formatAmount(amount: number, type: TransactionType): string {
       <el-table-column prop="description" label="說明" show-overflow-tooltip />
 
       <el-table-column label="操作" width="150" fixed="right">
-        <template #default>
-          <el-button type="primary" text size="small">編輯</el-button>
+        <template #default="{ row }">
+          <el-button type="primary" text size="small" @click="handleEdit(row)">編輯</el-button>
           <el-button type="danger" text size="small">刪除</el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <TransactionDialog
+      v-model:visible="dialogVisible"
+      :editing-transaction="editingTransaction"
+    />
   </div>
 </template>
