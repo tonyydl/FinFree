@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { HomeFilled } from '@element-plus/icons-vue'
+import { HomeFilled, List } from '@element-plus/icons-vue'
 
 defineProps<{
   collapsed: boolean
@@ -24,6 +24,10 @@ const router = useRouter()
       <el-menu-item index="/">
         <el-icon><HomeFilled /></el-icon>
         <template #title>總覽</template>
+      </el-menu-item>
+      <el-menu-item index="/transactions">
+        <el-icon><List /></el-icon>
+        <template #title>交易記錄</template>
       </el-menu-item>
     </el-menu>
   </el-aside>
