@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useTransactionStore } from '@/stores/transaction'
 import { TransactionType } from '@/types'
 import type { TransactionResponse } from '@/types'
@@ -11,9 +11,59 @@ const transactionStore = useTransactionStore()
 const dialogVisible = ref(false)
 const editingTransaction = ref<TransactionResponse | null>(null)
 
+// 篩選條件
+const filterType = ref<TransactionType | ''>('')
+const filterDateRange = ref<[string, string] | null>(null)
+
+// 分頁
+const currentPage = ref(1)
+const pageSize = ref(10)
+
 onMounted(() => {
   transactionStore.fetchTransactions()
 })
+
+// 篩選後的資料
+const filteredTransactions = computed(() => {
+  let result = transactionStore.transactions
+
+  // 類型篩選
+  if (filterType.value !== '') {
+    result = result.filter(t => t.type === filterType.value)
+  }
+
+  // 日期範圍篩選
+  if (filterDateRange.value) {
+    const [start, end] = filterDateRange.value
+    const startDate = new Date(start)
+    const endDate = new Date(end)
+    endDate.setHours(23, 59, 59, 999)
+    result = result.filter(t => {
+      const d = new Date(t.date)
+      return d >= startDate && d <= endDate
+    })
+  }
+
+  return result
+})
+
+// 分頁後的資料
+const paginatedTransactions = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredTransactions.value.slice(start, start + pageSize.value)
+})
+
+const totalCount = computed(() => filteredTransactions.value.length)
+
+function handleFilterChange() {
+  currentPage.value = 1
+}
+
+function clearFilters() {
+  filterType.value = ''
+  filterDateRange.value = null
+  currentPage.value = 1
+}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('zh-TW')
@@ -62,9 +112,41 @@ async function handleDelete(row: TransactionResponse) {
       <el-button type="primary" @click="handleAdd">新增交易</el-button>
     </div>
 
+    <!-- 篩選列 -->
+    <el-card style="margin-bottom: 20px" shadow="never">
+      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span>類型：</span>
+          <el-select
+            v-model="filterType"
+            placeholder="全部"
+            clearable
+            style="width: 120px"
+            @change="handleFilterChange"
+          >
+            <el-option label="收入" :value="TransactionType.Income" />
+            <el-option label="支出" :value="TransactionType.Expense" />
+          </el-select>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span>日期：</span>
+          <el-date-picker
+            v-model="filterDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="開始日期"
+            end-placeholder="結束日期"
+            value-format="YYYY-MM-DD"
+            @change="handleFilterChange"
+          />
+        </div>
+        <el-button text @click="clearFilters">清除篩選</el-button>
+      </div>
+    </el-card>
+
     <el-table
       v-loading="transactionStore.loading"
-      :data="transactionStore.transactions"
+      :data="paginatedTransactions"
       stripe
       style="width: 100%"
     >
@@ -107,6 +189,17 @@ async function handleDelete(row: TransactionResponse) {
         </el-empty>
       </template>
     </el-table>
+
+    <!-- 分頁 -->
+    <div v-if="totalCount > 0" style="display: flex; justify-content: flex-end; margin-top: 16px">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        :total="totalCount"
+        layout="total, sizes, prev, pager, next"
+      />
+    </div>
 
     <TransactionDialog
       v-model:visible="dialogVisible"
