@@ -1,8 +1,8 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FinFree.Api.Data;
-using FinFree.Api.DTOs.Responses;
+using FinFree.Api.DTOs.Requests;
+using FinFree.Api.Services.Interfaces;
 
 namespace FinFree.Api.Controllers;
 
@@ -11,27 +11,71 @@ namespace FinFree.Api.Controllers;
 [Authorize]
 public class CategoriesController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly ICategoryService _categoryService;
 
-    public CategoriesController(AppDbContext context)
+    public CategoriesController(ICategoryService categoryService)
     {
-        _context = context;
+        _categoryService = categoryService;
+    }
+
+    private int GetUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return int.Parse(userIdClaim ?? "0");
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var categories = await _context.Categories
-            .Where(c => c.UserId == null) // 只取得系統預設分類
-            .Select(c => new CategoryResponse
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Type = c.Type,
-                IsSystemDefault = c.UserId == null
-            })
-            .ToListAsync();
-
+        var userId = GetUserId();
+        var categories = await _categoryService.GetAllAsync(userId);
         return Ok(categories);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetUserId();
+        var category = await _categoryService.CreateAsync(request, userId);
+
+        return CreatedAtAction(nameof(GetAll), new { id = category.Id }, category);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetUserId();
+        var category = await _categoryService.UpdateAsync(id, request, userId);
+
+        if (category == null)
+            return NotFound(new { message = "分類不存在或無權限修改" });
+
+        return Ok(category);
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userId = GetUserId();
+
+        try
+        {
+            var result = await _categoryService.DeleteAsync(id, userId);
+
+            if (!result)
+                return NotFound(new { message = "分類不存在或無權限刪除" });
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }
