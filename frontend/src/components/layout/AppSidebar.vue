@@ -1,0 +1,30 @@
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { HomeFilled } from '@element-plus/icons-vue'
+
+defineProps<{
+  collapsed: boolean
+}>()
+
+const router = useRouter()
+</script>
+
+<template>
+  <el-aside :width="collapsed ? '64px' : '200px'" style="transition: width 0.3s">
+    <el-menu
+      :collapse="collapsed"
+      :default-active="router.currentRoute.value.path"
+      router
+      style="height: 100%; border-right: none"
+    >
+      <div style="padding: 16px; text-align: center; font-weight: bold; font-size: 18px">
+        <span v-if="!collapsed">FinFree</span>
+        <span v-else>FF</span>
+      </div>
+      <el-menu-item index="/">
+        <el-icon><HomeFilled /></el-icon>
+        <template #title>總覽</template>
+      </el-menu-item>
+    </el-menu>
+  </el-aside>
+</template>

@@ -1,0 +1,22 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#app {
+  height: 100%;
+}
+
+.el-aside {
+  background-color: #fff;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+}
+
+.el-main {
+  background-color: #f5f7fa;
+}
