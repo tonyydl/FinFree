@@ -5,6 +5,7 @@ import { TransactionType } from '@/types'
 import type { TransactionResponse } from '@/types'
 import TransactionDialog from '@/components/TransactionDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import api from '@/api'
 
 const transactionStore = useTransactionStore()
 
@@ -84,6 +85,28 @@ function handleEdit(row: TransactionResponse) {
   dialogVisible.value = true
 }
 
+const exporting = ref(false)
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    const response = await api.get('/transactions/export', { responseType: 'blob' })
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    link.download = `FinFree_交易記錄_${today}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('匯出成功')
+  } catch {
+    ElMessage.error('匯出失敗')
+  } finally {
+    exporting.value = false
+  }
+}
+
 async function handleDelete(row: TransactionResponse) {
   try {
     await ElMessageBox.confirm(
@@ -109,7 +132,10 @@ async function handleDelete(row: TransactionResponse) {
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
       <h1 style="margin: 0">交易記錄</h1>
-      <el-button type="primary" @click="handleAdd">新增交易</el-button>
+      <div style="display: flex; gap: 8px">
+        <el-button :loading="exporting" @click="handleExport">匯出 CSV</el-button>
+        <el-button type="primary" @click="handleAdd">新增交易</el-button>
+      </div>
     </div>
 
     <!-- 篩選列 -->

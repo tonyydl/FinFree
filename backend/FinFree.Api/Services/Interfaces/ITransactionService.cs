@@ -11,4 +11,5 @@ public interface ITransactionService
     Task<TransactionResponse?> UpdateAsync(int id, UpdateTransactionRequest request, int userId);
     Task<bool> DeleteAsync(int id, int userId);
     Task<StatisticsResponse> GetStatisticsAsync(int userId);
+    Task<byte[]> ExportCsvAsync(int userId);
 }

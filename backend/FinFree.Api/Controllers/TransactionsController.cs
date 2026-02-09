@@ -90,4 +90,13 @@ public class TransactionsController : ControllerBase
         var statistics = await _transactionService.GetStatisticsAsync(userId);
         return Ok(statistics);
     }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> Export()
+    {
+        var userId = GetUserId();
+        var csvBytes = await _transactionService.ExportCsvAsync(userId);
+        var fileName = $"FinFree_交易記錄_{DateTime.Now:yyyyMMdd}.csv";
+        return File(csvBytes, "text/csv", fileName);
+    }
 }

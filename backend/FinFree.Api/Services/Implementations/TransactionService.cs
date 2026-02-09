@@ -161,6 +161,37 @@ public class TransactionService : ITransactionService
         return true;
     }
 
+    public async Task<byte[]> ExportCsvAsync(int userId)
+    {
+        var transactions = await _context.Transactions
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId)
+            .OrderByDescending(t => t.Date)
+            .ToListAsync();
+
+        using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(true));
+
+        await writer.WriteLineAsync("日期,類型,分類,金額,備註");
+
+        foreach (var t in transactions)
+        {
+            var type = t.Type == TransactionType.Income ? "收入" : "支出";
+            var description = EscapeCsv(t.Description ?? "");
+            await writer.WriteLineAsync($"{t.Date:yyyy-MM-dd},{type},{EscapeCsv(t.Category.Name)},{t.Amount},{description}");
+        }
+
+        await writer.FlushAsync();
+        return stream.ToArray();
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
+
     public async Task<StatisticsResponse> GetStatisticsAsync(int userId)
     {
         var transactions = await _unitOfWork.Transactions
