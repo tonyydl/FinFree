@@ -182,6 +182,7 @@ async function handleDelete(row: TransactionResponse) {
             end-placeholder="結束"
             value-format="YYYY-MM-DD"
             class="filter-date"
+            popper-class="date-range-popper"
             @change="handleFilterChange"
           />
         </div>
