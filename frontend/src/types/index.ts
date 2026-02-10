@@ -71,6 +71,23 @@ export interface CategoryResponse {
   isSystemDefault: boolean
 }
 
+// ===== User =====
+
+export interface UpdateProfileRequest {
+  username: string
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
+export interface ProfileResponse {
+  username: string
+  email: string
+  createdAt: string
+}
+
 // ===== Statistics =====
 
 export interface StatisticsResponse {

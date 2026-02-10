@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { HomeFilled, List, Grid } from '@element-plus/icons-vue'
+import { HomeFilled, List, Grid, Setting } from '@element-plus/icons-vue'
 
 defineProps<{
   collapsed: boolean
@@ -32,6 +32,10 @@ const router = useRouter()
       <el-menu-item index="/categories">
         <el-icon><Grid /></el-icon>
         <template #title>分類管理</template>
+      </el-menu-item>
+      <el-menu-item index="/settings">
+        <el-icon><Setting /></el-icon>
+        <template #title>個人設定</template>
       </el-menu-item>
     </el-menu>
   </el-aside>
