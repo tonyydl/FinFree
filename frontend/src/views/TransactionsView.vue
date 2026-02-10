@@ -141,7 +141,7 @@ async function handleDelete(row: TransactionResponse) {
 
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
+    <div class="page-header">
       <h1 style="margin: 0">交易記錄</h1>
       <div style="display: flex; gap: 8px">
         <el-button :loading="exporting" @click="handleExport">匯出 CSV</el-button>
@@ -235,12 +235,13 @@ async function handleDelete(row: TransactionResponse) {
     </el-table>
 
     <!-- 分頁 -->
-    <div v-if="totalCount > 0" style="display: flex; justify-content: flex-end; margin-top: 16px">
+    <div v-if="totalCount > 0" class="pagination-wrapper">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :page-sizes="[10, 20, 50]"
         :total="totalCount"
+        :small="true"
         layout="total, sizes, prev, pager, next"
       />
     </div>
@@ -251,3 +252,21 @@ async function handleDelete(row: TransactionResponse) {
     />
   </div>
 </template>
+
+<style scoped>
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  overflow-x: auto;
+}
+</style>

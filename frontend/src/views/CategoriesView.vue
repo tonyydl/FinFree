@@ -50,7 +50,7 @@ async function handleDelete(row: CategoryResponse) {
 
 <template>
   <div>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px">
       <h1 style="margin: 0">分類管理</h1>
       <el-button type="primary" @click="handleAdd">新增分類</el-button>
     </div>

@@ -130,7 +130,7 @@ const hasTransactions = computed(() => transactions.value.length > 0)
     <h1>歡迎回來，{{ authStore.username }}</h1>
 
     <el-row :gutter="20" style="margin-top: 20px" v-loading="loading">
-      <el-col :span="8">
+      <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
         <el-card shadow="hover">
           <template #header>總收入</template>
           <p style="font-size: 24px; color: #67c23a; margin: 0">
@@ -138,7 +138,7 @@ const hasTransactions = computed(() => transactions.value.length > 0)
           </p>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
         <el-card shadow="hover">
           <template #header>總支出</template>
           <p style="font-size: 24px; color: #f56c6c; margin: 0">
@@ -146,7 +146,7 @@ const hasTransactions = computed(() => transactions.value.length > 0)
           </p>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
         <el-card shadow="hover">
           <template #header>餘額</template>
           <p style="font-size: 24px; color: #409eff; margin: 0">
@@ -156,8 +156,8 @@ const hasTransactions = computed(() => transactions.value.length > 0)
       </el-col>
     </el-row>
 
-    <el-row v-if="hasTransactions" :gutter="20" style="margin-top: 20px">
-      <el-col :span="12">
+    <el-row v-if="hasTransactions" :gutter="20" style="margin-top: 8px">
+      <el-col :xs="24" :sm="12" style="margin-bottom: 12px">
         <el-card shadow="hover">
           <template #header>支出分佈</template>
           <div style="max-height: 300px; display: flex; justify-content: center">
@@ -165,7 +165,7 @@ const hasTransactions = computed(() => transactions.value.length > 0)
           </div>
         </el-card>
       </el-col>
-      <el-col :span="12">
+      <el-col :xs="24" :sm="12" style="margin-bottom: 12px">
         <el-card shadow="hover">
           <template #header>月收支趨勢</template>
           <Bar :data="barData" :options="barOptions" />

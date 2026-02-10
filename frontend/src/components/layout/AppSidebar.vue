@@ -6,6 +6,10 @@ defineProps<{
   collapsed: boolean
 }>()
 
+const emit = defineEmits<{
+  menuSelect: []
+}>()
+
 const router = useRouter()
 </script>
 
@@ -16,6 +20,7 @@ const router = useRouter()
       :default-active="router.currentRoute.value.path"
       router
       style="height: 100%; border-right: none"
+      @select="emit('menuSelect')"
     >
       <div style="padding: 16px; text-align: center; font-weight: bold; font-size: 18px">
         <span v-if="!collapsed">FinFree</span>
