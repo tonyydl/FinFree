@@ -151,36 +151,37 @@ async function handleDelete(row: TransactionResponse) {
 
     <!-- 篩選列 -->
     <el-card style="margin-bottom: 20px" shadow="never">
-      <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+      <div class="filter-bar">
         <el-input
           v-model="searchKeyword"
           placeholder="搜尋說明或分類"
           clearable
-          style="width: 200px"
+          class="filter-search"
           @input="handleFilterChange"
         />
-        <div style="display: flex; align-items: center; gap: 8px">
-          <span>類型：</span>
+        <div class="filter-item">
+          <span class="filter-label">類型：</span>
           <el-select
             v-model="filterType"
             placeholder="全部"
             clearable
-            style="width: 120px"
+            class="filter-type"
             @change="handleFilterChange"
           >
             <el-option label="收入" :value="TransactionType.Income" />
             <el-option label="支出" :value="TransactionType.Expense" />
           </el-select>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px">
-          <span>日期：</span>
+        <div class="filter-item">
+          <span class="filter-label">日期：</span>
           <el-date-picker
             v-model="filterDateRange"
             type="daterange"
             range-separator="至"
-            start-placeholder="開始日期"
-            end-placeholder="結束日期"
+            start-placeholder="開始"
+            end-placeholder="結束"
             value-format="YYYY-MM-DD"
+            class="filter-date"
             @change="handleFilterChange"
           />
         </div>
@@ -263,10 +264,54 @@ async function handleDelete(row: TransactionResponse) {
   gap: 12px;
 }
 
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  white-space: nowrap;
+}
+
+.filter-search {
+  width: 200px;
+}
+
+.filter-type {
+  width: 120px;
+}
+
 .pagination-wrapper {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
   overflow-x: auto;
+}
+
+@media (max-width: 767px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-item {
+    width: 100%;
+  }
+
+  .filter-search,
+  .filter-type,
+  .filter-date {
+    width: 100% !important;
+    flex: 1;
+  }
 }
 </style>
