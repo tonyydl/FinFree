@@ -13,6 +13,7 @@ const dialogVisible = ref(false)
 const editingTransaction = ref<TransactionResponse | null>(null)
 
 // 篩選條件
+const searchKeyword = ref('')
 const filterType = ref<TransactionType | ''>('')
 const filterDateRange = ref<[string, string] | null>(null)
 
@@ -27,6 +28,15 @@ onMounted(() => {
 // 篩選後的資料
 const filteredTransactions = computed(() => {
   let result = transactionStore.transactions
+
+  // 關鍵字搜尋（說明、分類名稱）
+  if (searchKeyword.value.trim()) {
+    const keyword = searchKeyword.value.trim().toLowerCase()
+    result = result.filter(t =>
+      (t.description && t.description.toLowerCase().includes(keyword)) ||
+      t.categoryName.toLowerCase().includes(keyword),
+    )
+  }
 
   // 類型篩選
   if (filterType.value !== '') {
@@ -61,6 +71,7 @@ function handleFilterChange() {
 }
 
 function clearFilters() {
+  searchKeyword.value = ''
   filterType.value = ''
   filterDateRange.value = null
   currentPage.value = 1
@@ -141,6 +152,13 @@ async function handleDelete(row: TransactionResponse) {
     <!-- 篩選列 -->
     <el-card style="margin-bottom: 20px" shadow="never">
       <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜尋說明或分類"
+          clearable
+          style="width: 200px"
+          @input="handleFilterChange"
+        />
         <div style="display: flex; align-items: center; gap: 8px">
           <span>類型：</span>
           <el-select
