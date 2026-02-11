@@ -15,7 +15,8 @@ const editingTransaction = ref<TransactionResponse | null>(null)
 // 篩選條件
 const searchKeyword = ref('')
 const filterType = ref<TransactionType | ''>('')
-const filterDateRange = ref<[string, string] | null>(null)
+const filterStartDate = ref<string | null>(null)
+const filterEndDate = ref<string | null>(null)
 
 // 分頁
 const currentPage = ref(1)
@@ -44,14 +45,21 @@ const filteredTransactions = computed(() => {
   }
 
   // 日期範圍篩選
-  if (filterDateRange.value) {
-    const [start, end] = filterDateRange.value
-    const startDate = new Date(start)
-    const endDate = new Date(end)
-    endDate.setHours(23, 59, 59, 999)
+  const start = filterStartDate.value
+  const end = filterEndDate.value
+  if (start || end) {
     result = result.filter(t => {
       const d = new Date(t.date)
-      return d >= startDate && d <= endDate
+      if (start) {
+        const startDate = new Date(start)
+        if (d < startDate) return false
+      }
+      if (end) {
+        const endDate = new Date(end)
+        endDate.setHours(23, 59, 59, 999)
+        if (d > endDate) return false
+      }
+      return true
     })
   }
 
@@ -70,10 +78,29 @@ function handleFilterChange() {
   currentPage.value = 1
 }
 
+function handleStartDateChange() {
+  if (filterStartDate.value && filterEndDate.value && filterStartDate.value > filterEndDate.value) {
+    ElMessage.warning('開始日期不能晚於結束日期')
+    filterStartDate.value = null
+    return
+  }
+  handleFilterChange()
+}
+
+function handleEndDateChange() {
+  if (filterStartDate.value && filterEndDate.value && filterEndDate.value < filterStartDate.value) {
+    ElMessage.warning('結束日期不能早於開始日期')
+    filterEndDate.value = null
+    return
+  }
+  handleFilterChange()
+}
+
 function clearFilters() {
   searchKeyword.value = ''
   filterType.value = ''
-  filterDateRange.value = null
+  filterStartDate.value = null
+  filterEndDate.value = null
   currentPage.value = 1
 }
 
@@ -173,17 +200,27 @@ async function handleDelete(row: TransactionResponse) {
           </el-select>
         </div>
         <div class="filter-item">
-          <span class="filter-label">日期：</span>
+          <span class="filter-label">開始：</span>
           <el-date-picker
-            v-model="filterDateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="開始"
-            end-placeholder="結束"
+            v-model="filterStartDate"
+            type="date"
+            placeholder="開始日期"
             value-format="YYYY-MM-DD"
+            clearable
             class="filter-date"
-            popper-class="date-range-popper"
-            @change="handleFilterChange"
+            @change="handleStartDateChange"
+          />
+        </div>
+        <div class="filter-item">
+          <span class="filter-label">結束：</span>
+          <el-date-picker
+            v-model="filterEndDate"
+            type="date"
+            placeholder="結束日期"
+            value-format="YYYY-MM-DD"
+            clearable
+            class="filter-date"
+            @change="handleEndDateChange"
           />
         </div>
         <el-button text @click="clearFilters">清除篩選</el-button>
