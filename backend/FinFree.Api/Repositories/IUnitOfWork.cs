@@ -7,5 +7,6 @@ public interface IUnitOfWork : IDisposable
     IRepository<User> Users { get; }
     IRepository<Transaction> Transactions { get; }
     IRepository<Category> Categories { get; }
+    IRepository<Budget> Budgets { get; }
     Task<int> SaveChangesAsync();
 }
