@@ -32,6 +32,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '交易記錄' },
       },
       {
+        path: 'budgets',
+        name: 'Budgets',
+        component: () => import('@/views/BudgetsView.vue'),
+        meta: { title: '預算管理' },
+      },
+      {
         path: 'categories',
         name: 'Categories',
         component: () => import('@/views/CategoriesView.vue'),

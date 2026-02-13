@@ -88,6 +88,29 @@ export interface ProfileResponse {
   createdAt: string
 }
 
+// ===== Budgets =====
+
+export interface CreateBudgetRequest {
+  categoryId?: number | null
+  amount: number
+  year: number
+  month: number
+}
+
+export interface UpdateBudgetRequest {
+  amount: number
+}
+
+export interface BudgetResponse {
+  id: number
+  categoryId: number | null
+  categoryName: string | null
+  amount: number
+  spent: number
+  year: number
+  month: number
+}
+
 // ===== Statistics =====
 
 export interface StatisticsResponse {

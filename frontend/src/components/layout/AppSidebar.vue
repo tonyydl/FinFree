@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { HomeFilled, List, Grid, Setting } from '@element-plus/icons-vue'
+import { HomeFilled, List, Grid, Setting, Wallet } from '@element-plus/icons-vue'
 
 defineProps<{
   collapsed: boolean
@@ -33,6 +33,10 @@ const router = useRouter()
       <el-menu-item index="/transactions">
         <el-icon><List /></el-icon>
         <template #title>交易記錄</template>
+      </el-menu-item>
+      <el-menu-item index="/budgets">
+        <el-icon><Wallet /></el-icon>
+        <template #title>預算管理</template>
       </el-menu-item>
       <el-menu-item index="/categories">
         <el-icon><Grid /></el-icon>
