@@ -1,12 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-
-COPY FinFree.Api/FinFree.Api.csproj FinFree.Api/
-RUN dotnet restore FinFree.Api/FinFree.Api.csproj
-
-COPY FinFree.Api/ FinFree.Api/
 WORKDIR /src/FinFree.Api
-RUN dotnet publish -c Release -o /app/publish --no-restore
+
+COPY FinFree.Api/FinFree.Api.csproj .
+COPY FinFree.Api/ .
+RUN dotnet publish FinFree.Api.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
