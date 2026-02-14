@@ -23,4 +23,8 @@ html {
   color: var(--el-text-color-primary);
   transition: background-color 0.3s, color 0.3s;
 }
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--el-text-color-primary);
+}
 </style>
