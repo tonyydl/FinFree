@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBudgetStore } from '@/stores/budget'
+import { useRecurringTransactionStore } from '@/stores/recurringTransaction'
 import api from '@/api'
 import { TransactionType } from '@/types'
 import type { StatisticsResponse, TransactionResponse, BudgetResponse } from '@/types'
@@ -20,6 +21,7 @@ ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Le
 
 const authStore = useAuthStore()
 const budgetStore = useBudgetStore()
+const recurringStore = useRecurringTransactionStore()
 const statistics = ref<StatisticsResponse | null>(null)
 const transactions = ref<TransactionResponse[]>([])
 const loading = ref(false)
@@ -31,6 +33,9 @@ const currentMonth = now.getMonth() + 1
 onMounted(async () => {
   loading.value = true
   try {
+    // 先執行到期的定期交易，再載入資料
+    await recurringStore.executePending()
+
     const [statsRes, txRes] = await Promise.all([
       api.get<StatisticsResponse>('/transactions/statistics'),
       api.get<TransactionResponse[]>('/transactions'),

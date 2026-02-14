@@ -32,6 +32,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '交易記錄' },
       },
       {
+        path: 'recurring',
+        name: 'RecurringTransactions',
+        component: () => import('@/views/RecurringTransactionsView.vue'),
+        meta: { title: '定期交易' },
+      },
+      {
         path: 'budgets',
         name: 'Budgets',
         component: () => import('@/views/BudgetsView.vue'),

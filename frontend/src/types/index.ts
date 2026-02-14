@@ -111,6 +111,47 @@ export interface BudgetResponse {
   month: number
 }
 
+// ===== Recurring Transactions =====
+
+export enum RecurrenceFrequency {
+  Monthly = 0,
+  Weekly = 1,
+  Daily = 2,
+  Yearly = 3,
+}
+
+export interface CreateRecurringTransactionRequest {
+  amount: number
+  type: TransactionType
+  categoryId: number
+  description?: string
+  frequency: RecurrenceFrequency
+  startDate: string
+  endDate?: string | null
+}
+
+export interface UpdateRecurringTransactionRequest {
+  amount?: number
+  description?: string
+  endDate?: string | null
+  isActive?: boolean
+}
+
+export interface RecurringTransactionResponse {
+  id: number
+  amount: number
+  type: TransactionType
+  categoryId: number
+  categoryName: string
+  description: string | null
+  frequency: RecurrenceFrequency
+  startDate: string
+  nextOccurrenceDate: string
+  endDate: string | null
+  isActive: boolean
+  createdAt: string
+}
+
 // ===== Statistics =====
 
 export interface StatisticsResponse {
