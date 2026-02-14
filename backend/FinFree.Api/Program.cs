@@ -99,6 +99,13 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 
 var app = builder.Build();
 
+// 自動執行資料庫 Migration
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
