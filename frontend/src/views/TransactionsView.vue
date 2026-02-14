@@ -133,6 +133,60 @@ function handleEdit(row: TransactionResponse) {
   dialogVisible.value = true
 }
 
+// 匯入
+const importVisible = ref(false)
+const importAccountId = ref<number | null>(null)
+const importFile = ref<File | null>(null)
+const importing = ref(false)
+
+function handleImportOpen() {
+  importAccountId.value = null
+  importFile.value = null
+  importVisible.value = true
+}
+
+function handleFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  importFile.value = target.files?.[0] ?? null
+}
+
+async function handleImportSubmit() {
+  if (!importFile.value) {
+    ElMessage.warning('請選擇 CSV 檔案')
+    return
+  }
+  if (!importAccountId.value) {
+    ElMessage.warning('請選擇匯入帳戶')
+    return
+  }
+
+  importing.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', importFile.value)
+    formData.append('accountId', String(importAccountId.value))
+
+    const res = await api.post<{ imported: number; failed: number; errors: string[] }>(
+      '/transactions/import',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    )
+    const { imported, failed, errors } = res.data
+    if (imported > 0) {
+      ElMessage.success(`匯入成功 ${imported} 筆${failed > 0 ? `，失敗 ${failed} 筆` : ''}`)
+      transactionStore.fetchTransactions()
+      importVisible.value = false
+    }
+    if (failed > 0 && imported === 0) {
+      ElMessage.error(`匯入失敗：${errors[0]}`)
+    }
+  } catch {
+    // 錯誤由 Axios 攔截器處理
+  } finally {
+    importing.value = false
+  }
+}
+
 const exporting = ref(false)
 
 async function handleExport() {
@@ -181,6 +235,7 @@ async function handleDelete(row: TransactionResponse) {
     <div class="page-header">
       <h1 style="margin: 0">交易記錄</h1>
       <div style="display: flex; gap: 8px">
+        <el-button @click="handleImportOpen">匯入 CSV</el-button>
         <el-button :loading="exporting" @click="handleExport">匯出 CSV</el-button>
         <el-button type="primary" @click="handleAdd">新增交易</el-button>
       </div>
@@ -322,6 +377,47 @@ async function handleDelete(row: TransactionResponse) {
       v-model:visible="dialogVisible"
       :editing-transaction="editingTransaction"
     />
+
+    <!-- 匯入對話框 -->
+    <el-dialog
+      v-model="importVisible"
+      title="匯入 CSV"
+      width="420px"
+    >
+      <div style="margin-bottom: 16px; color: #909399; font-size: 13px">
+        支援從 FinFree 匯出的 CSV 格式（日期、類型、分類、金額、備註）。
+      </div>
+      <el-form label-position="top">
+        <el-form-item label="匯入至帳戶">
+          <el-select
+            v-model="importAccountId"
+            placeholder="請選擇帳戶"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="acc in accountStore.accounts"
+              :key="acc.id"
+              :label="acc.name"
+              :value="acc.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="CSV 檔案">
+          <input
+            type="file"
+            accept=".csv"
+            style="width: 100%"
+            @change="handleFileChange"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="importVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importing" @click="handleImportSubmit">
+          開始匯入
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

@@ -206,6 +206,145 @@ public class TransactionService : ITransactionService
         return stream.ToArray();
     }
 
+    public async Task<(int imported, int failed, List<string> errors)> ImportCsvAsync(Stream csvStream, int accountId, int userId)
+    {
+        var imported = 0;
+        var failed = 0;
+        var errors = new List<string>();
+
+        var account = await _unitOfWork.Accounts.GetByIdAsync(accountId);
+        if (account == null)
+            throw new InvalidOperationException("帳戶不存在");
+
+        using var reader = new StreamReader(csvStream, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var headerLine = await reader.ReadLineAsync();
+        if (headerLine == null) return (0, 0, errors);
+
+        var lineNumber = 1;
+        while (!reader.EndOfStream)
+        {
+            lineNumber++;
+            var line = await reader.ReadLineAsync();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            try
+            {
+                var fields = ParseCsvLine(line);
+                if (fields.Length < 4)
+                {
+                    errors.Add($"第 {lineNumber} 行：欄位數不足");
+                    failed++;
+                    continue;
+                }
+
+                if (!DateTime.TryParse(fields[0].Trim(), out var date))
+                {
+                    errors.Add($"第 {lineNumber} 行：日期格式錯誤「{fields[0]}」");
+                    failed++;
+                    continue;
+                }
+
+                var typeStr = fields[1].Trim();
+                TransactionType type;
+                if (typeStr == "收入") type = TransactionType.Income;
+                else if (typeStr == "支出") type = TransactionType.Expense;
+                else
+                {
+                    errors.Add($"第 {lineNumber} 行：類型必須為「收入」或「支出」，實際為「{typeStr}」");
+                    failed++;
+                    continue;
+                }
+
+                var categoryName = fields[2].Trim();
+                if (string.IsNullOrEmpty(categoryName))
+                {
+                    errors.Add($"第 {lineNumber} 行：分類不可為空");
+                    failed++;
+                    continue;
+                }
+
+                if (!decimal.TryParse(fields[3].Trim(), out var amount) || amount <= 0)
+                {
+                    errors.Add($"第 {lineNumber} 行：金額格式錯誤「{fields[3]}」");
+                    failed++;
+                    continue;
+                }
+
+                var description = fields.Length > 4 ? fields[4].Trim() : null;
+
+                // 尋找或建立分類（優先使用者自訂，其次系統分類）
+                var category = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.Name == categoryName && c.Type == type && (c.UserId == userId || c.UserId == null));
+
+                if (category == null)
+                {
+                    category = new Category { Name = categoryName, Type = type, UserId = userId };
+                    _context.Categories.Add(category);
+                    await _context.SaveChangesAsync();
+                }
+
+                var user = await _unitOfWork.Users.GetByIdAsync(userId);
+                if (user == null) throw new InvalidOperationException("使用者不存在");
+
+                var transaction = new Transaction
+                {
+                    UserId = userId,
+                    Amount = amount,
+                    Type = type,
+                    CategoryId = category.Id,
+                    Description = string.IsNullOrEmpty(description) ? null : description,
+                    Date = DateTime.SpecifyKind(date, DateTimeKind.Utc),
+                    AccountId = accountId,
+                    User = user,
+                    Category = category,
+                };
+
+                await _unitOfWork.Transactions.AddAsync(transaction);
+                imported++;
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"第 {lineNumber} 行：{ex.Message}");
+                failed++;
+            }
+        }
+
+        if (imported > 0)
+            await _unitOfWork.SaveChangesAsync();
+
+        return (imported, failed, errors);
+    }
+
+    private static string[] ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var i = 0;
+        while (i < line.Length)
+        {
+            if (line[i] == '"')
+            {
+                i++;
+                var sb = new System.Text.StringBuilder();
+                while (i < line.Length)
+                {
+                    if (line[i] == '"' && i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i += 2; }
+                    else if (line[i] == '"') { i++; break; }
+                    else { sb.Append(line[i]); i++; }
+                }
+                fields.Add(sb.ToString());
+                if (i < line.Length && line[i] == ',') i++;
+            }
+            else
+            {
+                var end = line.IndexOf(',', i);
+                if (end == -1) { fields.Add(line[i..]); break; }
+                fields.Add(line[i..end]);
+                i = end + 1;
+            }
+        }
+        return fields.ToArray();
+    }
+
     private static string EscapeCsv(string value)
     {
         if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))

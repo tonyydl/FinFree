@@ -12,4 +12,5 @@ public interface ITransactionService
     Task<bool> DeleteAsync(int id, int userId);
     Task<StatisticsResponse> GetStatisticsAsync(int userId);
     Task<byte[]> ExportCsvAsync(int userId);
+    Task<(int imported, int failed, List<string> errors)> ImportCsvAsync(Stream csvStream, int accountId, int userId);
 }

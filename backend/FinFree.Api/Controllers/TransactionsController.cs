@@ -91,6 +91,22 @@ public class TransactionsController : ControllerBase
         return Ok(statistics);
     }
 
+    [HttpPost("import")]
+    public async Task<IActionResult> Import([FromForm] IFormFile file, [FromForm] int accountId)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "請選擇 CSV 檔案" });
+
+        if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { message = "僅支援 CSV 格式" });
+
+        var userId = GetUserId();
+        using var stream = file.OpenReadStream();
+        var (imported, failed, errors) = await _transactionService.ImportCsvAsync(stream, accountId, userId);
+
+        return Ok(new { imported, failed, errors });
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> Export()
     {
