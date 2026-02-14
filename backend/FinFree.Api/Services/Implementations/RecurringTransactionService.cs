@@ -49,10 +49,16 @@ public class RecurringTransactionService : IRecurringTransactionService
         if (user == null || category == null)
             throw new InvalidOperationException("使用者或分類不存在");
 
+        if (category.UserId != null && category.UserId != userId)
+            throw new InvalidOperationException("無權使用此分類");
+
         // 驗證帳戶
         var account = await _unitOfWork.Accounts.GetByIdAsync(request.AccountId);
         if (account == null)
             throw new InvalidOperationException("帳戶不存在");
+
+        if (account.UserId != userId)
+            throw new InvalidOperationException("無權使用此帳戶");
 
         var item = new RecurringTransaction
         {
@@ -102,7 +108,12 @@ public class RecurringTransactionService : IRecurringTransactionService
             item.IsActive = request.IsActive.Value;
 
         if (request.AccountId.HasValue)
+        {
+            var account = await _unitOfWork.Accounts.GetByIdAsync(request.AccountId.Value);
+            if (account == null || account.UserId != userId)
+                throw new InvalidOperationException("無權使用此帳戶");
             item.AccountId = request.AccountId.Value;
+        }
 
         item.UpdatedAt = DateTime.UtcNow;
 

@@ -4,6 +4,7 @@ import { useBudgetStore } from '@/stores/budget'
 import type { BudgetResponse } from '@/types'
 import BudgetDialog from '@/components/BudgetDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 
 const budgetStore = useBudgetStore()
 
@@ -139,10 +140,6 @@ async function handleDelete(budget: BudgetResponse) {
   </div>
 </template>
 
-<script lang="ts">
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
-export default { components: { ArrowLeft, ArrowRight } }
-</script>
 
 <style scoped>
 .page-header {

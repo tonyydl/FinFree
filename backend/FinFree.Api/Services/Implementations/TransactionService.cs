@@ -76,10 +76,16 @@ public class TransactionService : ITransactionService
         if (user == null || category == null)
             throw new InvalidOperationException("使用者或分類不存在");
 
+        if (category.UserId != null && category.UserId != userId)
+            throw new InvalidOperationException("無權使用此分類");
+
         // 驗證帳戶
         var account = await _unitOfWork.Accounts.GetByIdAsync(request.AccountId);
         if (account == null)
             throw new InvalidOperationException("帳戶不存在");
+
+        if (account.UserId != userId)
+            throw new InvalidOperationException("無權使用此帳戶");
 
         var transaction = new Transaction
         {
@@ -142,7 +148,12 @@ public class TransactionService : ITransactionService
             transaction.Date = request.Date.Value;
 
         if (request.AccountId.HasValue)
+        {
+            var account = await _unitOfWork.Accounts.GetByIdAsync(request.AccountId.Value);
+            if (account == null || account.UserId != userId)
+                throw new InvalidOperationException("無權使用此帳戶");
             transaction.AccountId = request.AccountId.Value;
+        }
 
         transaction.UpdatedAt = DateTime.UtcNow;
 
@@ -215,6 +226,9 @@ public class TransactionService : ITransactionService
         var account = await _unitOfWork.Accounts.GetByIdAsync(accountId);
         if (account == null)
             throw new InvalidOperationException("帳戶不存在");
+
+        if (account.UserId != userId)
+            throw new InvalidOperationException("無權使用此帳戶");
 
         using var reader = new StreamReader(csvStream, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         var headerLine = await reader.ReadLineAsync();

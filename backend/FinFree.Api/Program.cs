@@ -80,9 +80,15 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"];
+        if (!string.IsNullOrEmpty(allowedOrigins))
+            policy.WithOrigins(allowedOrigins.Split(','))
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        else
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
     });
 });
 

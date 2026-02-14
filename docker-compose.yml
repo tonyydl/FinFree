@@ -27,7 +27,7 @@ services:
     container_name: finfree-backend
     environment:
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=finfree;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
-      Jwt__Key: ${JWT_KEY:-your-super-secret-key-minimum-32-characters-long-for-security}
+      Jwt__Key: ${JWT_KEY:?JWT_KEY is required. Please set it in .env file}
       Jwt__Issuer: FinFree
       Jwt__Audience: FinFree
       Jwt__ExpiryInMinutes: 60
