@@ -58,6 +58,25 @@ onMounted(async () => {
 // 最近 5 筆交易
 const recentTransactions = computed(() => transactions.value.slice(0, 5))
 
+// 本月交易
+const currentMonthTransactions = computed(() =>
+  transactions.value.filter(t => {
+    const d = new Date(t.date)
+    return d.getFullYear() === currentYear && d.getMonth() + 1 === currentMonth
+  }),
+)
+
+// 本月收支統計
+const monthlyStats = computed(() => {
+  const income = currentMonthTransactions.value
+    .filter(t => t.type === TransactionType.Income)
+    .reduce((sum, t) => sum + t.amount, 0)
+  const expense = currentMonthTransactions.value
+    .filter(t => t.type === TransactionType.Expense)
+    .reduce((sum, t) => sum + t.amount, 0)
+  return { income, expense, balance: income - expense }
+})
+
 // 預算摘要
 function getBudgetPercentage(b: BudgetResponse): number {
   if (b.amount === 0) return 0
@@ -84,7 +103,7 @@ const CATEGORY_COLORS = [
 
 const expenseByCategory = computed(() => {
   const map = new Map<string, number>()
-  transactions.value
+  currentMonthTransactions.value
     .filter(t => t.type === TransactionType.Expense)
     .forEach(t => {
       const current = map.get(t.categoryName) ?? 0
@@ -129,9 +148,9 @@ const monthlyData = computed(() => {
     }
   })
 
-  // 按月份排序
+  // 按月份排序，取最近 6 個月
   const sorted = [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-  return sorted
+  return sorted.slice(-6)
 })
 
 const barData = computed(() => ({
@@ -178,27 +197,56 @@ const hasTransactions = computed(() => transactions.value.length > 0)
   <div>
     <h1>歡迎回來，{{ authStore.username }}</h1>
 
+    <!-- 本月收支 -->
     <el-row :gutter="20" style="margin-top: 20px" v-loading="loading">
       <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
         <el-card shadow="hover">
-          <template #header>總收入</template>
+          <template #header>本月收入</template>
           <p style="font-size: 24px; color: #67c23a; margin: 0">
+            {{ formatCurrency(monthlyStats.income) }}
+          </p>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
+        <el-card shadow="hover">
+          <template #header>本月支出</template>
+          <p style="font-size: 24px; color: #f56c6c; margin: 0">
+            {{ formatCurrency(monthlyStats.expense) }}
+          </p>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
+        <el-card shadow="hover">
+          <template #header>本月結餘</template>
+          <p :style="{ fontSize: '24px', color: monthlyStats.balance >= 0 ? '#67c23a' : '#f56c6c', margin: '0' }">
+            {{ formatCurrency(monthlyStats.balance) }}
+          </p>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 累計總覽 -->
+    <el-row :gutter="20" style="margin-top: 8px" v-loading="loading">
+      <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
+        <el-card shadow="hover">
+          <template #header>累計收入</template>
+          <p style="font-size: 20px; color: #67c23a; margin: 0">
             {{ formatCurrency(statistics?.totalIncome) }}
           </p>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
         <el-card shadow="hover">
-          <template #header>總支出</template>
-          <p style="font-size: 24px; color: #f56c6c; margin: 0">
+          <template #header>累計支出</template>
+          <p style="font-size: 20px; color: #f56c6c; margin: 0">
             {{ formatCurrency(statistics?.totalExpense) }}
           </p>
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="8" style="margin-bottom: 12px">
         <el-card shadow="hover">
-          <template #header>餘額</template>
-          <p style="font-size: 24px; color: #409eff; margin: 0">
+          <template #header>累計餘額</template>
+          <p style="font-size: 20px; color: #409eff; margin: 0">
             {{ formatCurrency(statistics?.balance) }}
           </p>
         </el-card>
@@ -252,7 +300,7 @@ const hasTransactions = computed(() => transactions.value.length > 0)
     <el-row v-if="hasTransactions" :gutter="20" style="margin-top: 8px">
       <el-col :xs="24" :sm="12" style="margin-bottom: 12px">
         <el-card shadow="hover">
-          <template #header>支出分佈</template>
+          <template #header>本月支出分佈</template>
           <div style="max-height: 300px; display: flex; justify-content: center">
             <Doughnut :data="doughnutData" :options="doughnutOptions" />
           </div>
@@ -260,7 +308,7 @@ const hasTransactions = computed(() => transactions.value.length > 0)
       </el-col>
       <el-col :xs="24" :sm="12" style="margin-bottom: 12px">
         <el-card shadow="hover">
-          <template #header>月收支趨勢</template>
+          <template #header>近6個月收支趨勢</template>
           <Bar :data="barData" :options="barOptions" />
         </el-card>
       </el-col>
