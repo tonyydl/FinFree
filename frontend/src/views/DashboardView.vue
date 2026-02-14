@@ -8,6 +8,7 @@ import { useAccountStore } from '@/stores/account'
 import api from '@/api'
 import { TransactionType } from '@/types'
 import type { StatisticsResponse, TransactionResponse, BudgetResponse } from '@/types'
+import { ElNotification } from 'element-plus'
 import { Doughnut, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -48,6 +49,28 @@ onMounted(async () => {
     ])
     statistics.value = statsRes.data
     transactions.value = txRes.data
+
+    // 預算提醒：超過 80% 或已超標
+    budgetStore.budgets.forEach(b => {
+      if (b.amount === 0) return
+      const pct = (b.spent / b.amount) * 100
+      const name = b.categoryName ?? '整體預算'
+      if (pct >= 100) {
+        ElNotification({
+          title: '預算已超標',
+          message: `「${name}」已花費 $${b.spent.toLocaleString()}，超出預算 $${b.amount.toLocaleString()}`,
+          type: 'error',
+          duration: 6000,
+        })
+      } else if (pct >= 80) {
+        ElNotification({
+          title: '預算即將用完',
+          message: `「${name}」已使用 ${Math.round(pct)}%（$${b.spent.toLocaleString()} / $${b.amount.toLocaleString()}）`,
+          type: 'warning',
+          duration: 6000,
+        })
+      }
+    })
   } catch {
     // 錯誤由 Axios 攔截器處理
   } finally {
