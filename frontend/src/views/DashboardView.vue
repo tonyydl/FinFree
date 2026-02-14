@@ -277,7 +277,7 @@ const hasTransactions = computed(() => transactions.value.length > 0)
   justify-content: space-between;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .recent-item:last-child {

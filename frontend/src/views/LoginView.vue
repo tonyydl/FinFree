@@ -21,7 +21,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #f5f7fa; padding: 16px">
+  <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--el-bg-color-page); padding: 16px">
     <el-card style="width: 100%; max-width: 400px">
       <template #header>
         <h2 style="text-align: center; margin: 0">FinFree 登入</h2>

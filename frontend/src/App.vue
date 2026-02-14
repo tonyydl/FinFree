@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useThemeStore } from '@/stores/theme'
+
+// 初始化主題（確保 dark class 在頁面載入時套用）
+useThemeStore()
 </script>
 
 <template>
@@ -14,4 +18,9 @@ html, body, #app {
     'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
 }
 
+html {
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+  transition: background-color 0.3s, color 0.3s;
+}
 </style>
