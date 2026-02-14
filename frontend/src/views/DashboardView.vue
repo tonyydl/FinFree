@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBudgetStore } from '@/stores/budget'
+import { useThemeStore } from '@/stores/theme'
 import { useRecurringTransactionStore } from '@/stores/recurringTransaction'
 import api from '@/api'
 import { TransactionType } from '@/types'
@@ -21,6 +22,7 @@ ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Le
 
 const authStore = useAuthStore()
 const budgetStore = useBudgetStore()
+const themeStore = useThemeStore()
 const recurringStore = useRecurringTransactionStore()
 const statistics = ref<StatisticsResponse | null>(null)
 const transactions = ref<TransactionResponse[]>([])
@@ -96,12 +98,17 @@ const doughnutData = computed(() => ({
   }],
 }))
 
-const doughnutOptions = {
+const chartTextColor = computed(() => themeStore.isDark ? '#E5EAF3' : '#606266')
+
+const doughnutOptions = computed(() => ({
   responsive: true,
   plugins: {
-    legend: { position: 'bottom' as const },
+    legend: {
+      position: 'bottom' as const,
+      labels: { color: chartTextColor.value },
+    },
   },
-}
+}))
 
 // 月收支趨勢長條圖資料
 const monthlyData = computed(() => {
@@ -140,15 +147,26 @@ const barData = computed(() => ({
   ],
 }))
 
-const barOptions = {
+const barOptions = computed(() => ({
   responsive: true,
   plugins: {
-    legend: { position: 'bottom' as const },
+    legend: {
+      position: 'bottom' as const,
+      labels: { color: chartTextColor.value },
+    },
   },
   scales: {
-    y: { beginAtZero: true },
+    x: {
+      ticks: { color: chartTextColor.value },
+      grid: { color: themeStore.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+    },
+    y: {
+      beginAtZero: true,
+      ticks: { color: chartTextColor.value },
+      grid: { color: themeStore.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+    },
   },
-}
+}))
 
 const hasTransactions = computed(() => transactions.value.length > 0)
 </script>
