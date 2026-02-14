@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAccountStore } from '@/stores/account'
 import type { AccountResponse } from '@/types'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -21,6 +21,32 @@ const rules: FormRules = {
     { min: 1, max: 50, message: '帳戶名稱長度須為 1-50 字', trigger: 'blur' },
   ],
 }
+
+// 轉帳
+const transferVisible = ref(false)
+const transferFormRef = ref<FormInstance>()
+
+const transferForm = ref({
+  fromAccountId: null as number | null,
+  toAccountId: null as number | null,
+  amount: null as number | null,
+  date: new Date().toISOString().slice(0, 10),
+  description: '',
+})
+
+const transferRules: FormRules = {
+  fromAccountId: [{ required: true, message: '請選擇來源帳戶', trigger: 'change' }],
+  toAccountId: [{ required: true, message: '請選擇目標帳戶', trigger: 'change' }],
+  amount: [
+    { required: true, message: '請輸入金額', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: '金額必須大於 0', trigger: 'blur' },
+  ],
+  date: [{ required: true, message: '請選擇日期', trigger: 'change' }],
+}
+
+const toAccountOptions = computed(() =>
+  store.accounts.filter((a) => a.id !== transferForm.value.fromAccountId),
+)
 
 onMounted(() => {
   store.fetchAccounts()
@@ -82,6 +108,45 @@ async function handleDelete(row: AccountResponse) {
   }
 }
 
+function handleTransfer() {
+  transferForm.value = {
+    fromAccountId: null,
+    toAccountId: null,
+    amount: null,
+    date: new Date().toISOString().slice(0, 10),
+    description: '',
+  }
+  transferVisible.value = true
+}
+
+function handleTransferClose() {
+  transferVisible.value = false
+  transferFormRef.value?.resetFields()
+}
+
+async function handleTransferSubmit() {
+  const valid = await transferFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  if (transferForm.value.fromAccountId === transferForm.value.toAccountId) {
+    ElMessage.warning('來源帳戶與目標帳戶不能相同')
+    return
+  }
+
+  const success = await store.transfer({
+    fromAccountId: transferForm.value.fromAccountId!,
+    toAccountId: transferForm.value.toAccountId!,
+    amount: transferForm.value.amount!,
+    date: transferForm.value.date,
+    description: transferForm.value.description || undefined,
+  })
+
+  if (success) {
+    ElMessage.success('轉帳成功')
+    handleTransferClose()
+  }
+}
+
 function formatCurrency(value: number): string {
   return `$${value.toLocaleString()}`
 }
@@ -99,7 +164,10 @@ const totalBalance = () => store.accounts.reduce((sum, a) => sum + a.balance, 0)
   <div>
     <div class="page-header">
       <h1 style="margin: 0">帳戶管理</h1>
-      <el-button type="primary" @click="handleAdd">新增帳戶</el-button>
+      <div style="display: flex; gap: 8px">
+        <el-button :disabled="store.accounts.length < 2" @click="handleTransfer">轉帳</el-button>
+        <el-button type="primary" @click="handleAdd">新增帳戶</el-button>
+      </div>
     </div>
 
     <!-- 帳戶總覽 -->
@@ -170,6 +238,88 @@ const totalBalance = () => store.accounts.reduce((sum, a) => sum + a.balance, 0)
         <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" :loading="store.loading" @click="handleSubmit">
           {{ editingAccount ? '更新' : '新增' }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 轉帳對話框 -->
+    <el-dialog
+      :model-value="transferVisible"
+      title="帳戶轉帳"
+      width="450px"
+      @close="handleTransferClose"
+    >
+      <el-form
+        ref="transferFormRef"
+        :model="transferForm"
+        :rules="transferRules"
+        label-position="top"
+        @submit.prevent="handleTransferSubmit"
+      >
+        <el-form-item label="來源帳戶" prop="fromAccountId">
+          <el-select
+            v-model="transferForm.fromAccountId"
+            placeholder="選擇來源帳戶"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="account in store.accounts"
+              :key="account.id"
+              :label="`${account.name}（${formatCurrency(account.balance)}）`"
+              :value="account.id"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="目標帳戶" prop="toAccountId">
+          <el-select
+            v-model="transferForm.toAccountId"
+            placeholder="選擇目標帳戶"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="account in toAccountOptions"
+              :key="account.id"
+              :label="`${account.name}（${formatCurrency(account.balance)}）`"
+              :value="account.id"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="金額" prop="amount">
+          <el-input-number
+            v-model="transferForm.amount"
+            :min="0.01"
+            :precision="2"
+            :controls="false"
+            placeholder="輸入轉帳金額"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="日期" prop="date">
+          <el-date-picker
+            v-model="transferForm.date"
+            type="date"
+            placeholder="選擇日期"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="描述">
+          <el-input
+            v-model="transferForm.description"
+            placeholder="選填，例如：繳信用卡"
+            maxlength="500"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="handleTransferClose">取消</el-button>
+        <el-button type="primary" :loading="store.loading" @click="handleTransferSubmit">
+          確認轉帳
         </el-button>
       </template>
     </el-dialog>

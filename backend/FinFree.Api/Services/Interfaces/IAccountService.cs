@@ -10,4 +10,5 @@ public interface IAccountService
     Task<AccountResponse> CreateAsync(CreateAccountRequest request, int userId);
     Task<AccountResponse?> UpdateAsync(int id, UpdateAccountRequest request, int userId);
     Task<bool> DeleteAsync(int id, int userId);
+    Task TransferAsync(TransferRequest request, int userId);
 }

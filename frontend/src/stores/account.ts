@@ -5,6 +5,7 @@ import type {
   AccountResponse,
   CreateAccountRequest,
   UpdateAccountRequest,
+  TransferRequest,
 } from '@/types'
 
 export const useAccountStore = defineStore('account', () => {
@@ -74,6 +75,22 @@ export const useAccountStore = defineStore('account', () => {
     }
   }
 
+  async function transfer(request: TransferRequest): Promise<boolean> {
+    loading.value = true
+    error.value = null
+    try {
+      await api.post('/accounts/transfer', request)
+      await fetchAccounts()
+      return true
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } }
+      error.value = axiosErr.response?.data?.message ?? '轉帳失敗'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     accounts,
     loading,
@@ -82,5 +99,6 @@ export const useAccountStore = defineStore('account', () => {
     createAccount,
     updateAccount,
     deleteAccount,
+    transfer,
   }
 })

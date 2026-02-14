@@ -70,6 +70,25 @@ public class AccountsController : ControllerBase
         return Ok(account);
     }
 
+    [HttpPost("transfer")]
+    public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = GetUserId();
+
+        try
+        {
+            await _service.TransferAsync(request, userId);
+            return Ok(new { message = "轉帳成功" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

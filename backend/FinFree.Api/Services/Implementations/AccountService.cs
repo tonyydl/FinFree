@@ -136,4 +136,83 @@ public class AccountService : IAccountService
 
         return true;
     }
+
+    private const string TransferInCategoryName = "轉帳收入";
+    private const string TransferOutCategoryName = "轉帳支出";
+
+    private async Task<Category> GetOrCreateSystemCategoryAsync(string name, TransactionType type)
+    {
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Name == name && c.UserId == null);
+
+        if (category != null)
+            return category;
+
+        category = new Category
+        {
+            Name = name,
+            Type = type,
+            UserId = null,
+        };
+
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+
+        return category;
+    }
+
+    public async Task TransferAsync(DTOs.Requests.TransferRequest request, int userId)
+    {
+        if (request.FromAccountId == request.ToAccountId)
+            throw new InvalidOperationException("來源帳戶與目標帳戶不能相同");
+
+        var fromAccount = await _context.Accounts
+            .FirstOrDefaultAsync(a => a.Id == request.FromAccountId && a.UserId == userId);
+        var toAccount = await _context.Accounts
+            .FirstOrDefaultAsync(a => a.Id == request.ToAccountId && a.UserId == userId);
+
+        if (fromAccount == null || toAccount == null)
+            throw new InvalidOperationException("帳戶不存在");
+
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
+        if (user == null)
+            throw new InvalidOperationException("系統資料異常");
+
+        var outCategory = await GetOrCreateSystemCategoryAsync(TransferOutCategoryName, TransactionType.Expense);
+        var inCategory = await GetOrCreateSystemCategoryAsync(TransferInCategoryName, TransactionType.Income);
+
+        var description = request.Description ?? $"從「{fromAccount.Name}」轉至「{toAccount.Name}」";
+
+        // 來源帳戶扣款（支出）
+        var outTransaction = new Transaction
+        {
+            UserId = userId,
+            Amount = request.Amount,
+            Type = TransactionType.Expense,
+            CategoryId = outCategory.Id,
+            Description = description,
+            Date = request.Date,
+            AccountId = request.FromAccountId,
+            User = user,
+            Category = outCategory,
+        };
+
+        // 目標帳戶入帳（收入）
+        var inTransaction = new Transaction
+        {
+            UserId = userId,
+            Amount = request.Amount,
+            Type = TransactionType.Income,
+            CategoryId = inCategory.Id,
+            Description = description,
+            Date = request.Date,
+            AccountId = request.ToAccountId,
+            User = user,
+            Category = inCategory,
+        };
+
+        await _unitOfWork.Transactions.AddAsync(outTransaction);
+        await _unitOfWork.Transactions.AddAsync(inTransaction);
+        await _unitOfWork.SaveChangesAsync();
+    }
 }

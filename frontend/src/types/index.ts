@@ -177,6 +177,14 @@ export interface AccountResponse {
   createdAt: string
 }
 
+export interface TransferRequest {
+  fromAccountId: number
+  toAccountId: number
+  amount: number
+  date: string
+  description?: string
+}
+
 // ===== Statistics =====
 
 export interface StatisticsResponse {
