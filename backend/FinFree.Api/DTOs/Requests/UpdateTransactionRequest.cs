@@ -16,4 +16,6 @@ public class UpdateTransactionRequest
     public string? Description { get; set; }
 
     public DateTime? Date { get; set; }
+
+    public int? AccountId { get; set; }
 }

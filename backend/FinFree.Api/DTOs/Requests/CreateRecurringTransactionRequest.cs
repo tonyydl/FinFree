@@ -25,4 +25,7 @@ public class CreateRecurringTransactionRequest
     public DateTime StartDate { get; set; }
 
     public DateTime? EndDate { get; set; }
+
+    [Required(ErrorMessage = "帳戶為必填")]
+    public int AccountId { get; set; }
 }

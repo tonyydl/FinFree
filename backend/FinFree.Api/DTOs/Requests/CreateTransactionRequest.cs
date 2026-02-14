@@ -20,4 +20,7 @@ public class CreateTransactionRequest
 
     [Required(ErrorMessage = "日期為必填")]
     public DateTime Date { get; set; }
+
+    [Required(ErrorMessage = "帳戶為必填")]
+    public int AccountId { get; set; }
 }

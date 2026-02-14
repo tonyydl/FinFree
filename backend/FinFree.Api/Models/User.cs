@@ -14,4 +14,5 @@ public class User
     public ICollection<Category> Categories { get; set; } = new List<Category>();
     public ICollection<Budget> Budgets { get; set; } = new List<Budget>();
     public ICollection<RecurringTransaction> RecurringTransactions { get; set; } = new List<RecurringTransaction>();
+    public ICollection<Account> Accounts { get; set; } = new List<Account>();
 }

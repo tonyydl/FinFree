@@ -23,6 +23,7 @@ public class RecurringTransactionService : IRecurringTransactionService
     {
         var items = await _context.RecurringTransactions
             .Include(r => r.Category)
+            .Include(r => r.Account)
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
@@ -34,6 +35,7 @@ public class RecurringTransactionService : IRecurringTransactionService
     {
         var item = await _context.RecurringTransactions
             .Include(r => r.Category)
+            .Include(r => r.Account)
             .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
 
         return item == null ? null : MapToResponse(item);
@@ -47,6 +49,11 @@ public class RecurringTransactionService : IRecurringTransactionService
         if (user == null || category == null)
             throw new InvalidOperationException("使用者或分類不存在");
 
+        // 驗證帳戶
+        var account = await _unitOfWork.Accounts.GetByIdAsync(request.AccountId);
+        if (account == null)
+            throw new InvalidOperationException("帳戶不存在");
+
         var item = new RecurringTransaction
         {
             UserId = userId,
@@ -58,14 +65,16 @@ public class RecurringTransactionService : IRecurringTransactionService
             StartDate = request.StartDate,
             NextOccurrenceDate = request.StartDate,
             EndDate = request.EndDate,
+            AccountId = request.AccountId,
             IsActive = true,
         };
 
         await _unitOfWork.RecurringTransactions.AddAsync(item);
         await _unitOfWork.SaveChangesAsync();
 
-        // Reload category for response
+        // Reload category and account for response
         await _context.Entry(item).Reference(r => r.Category).LoadAsync();
+        await _context.Entry(item).Reference(r => r.Account).LoadAsync();
 
         return MapToResponse(item);
     }
@@ -74,6 +83,7 @@ public class RecurringTransactionService : IRecurringTransactionService
     {
         var item = await _context.RecurringTransactions
             .Include(r => r.Category)
+            .Include(r => r.Account)
             .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
 
         if (item == null)
@@ -90,6 +100,9 @@ public class RecurringTransactionService : IRecurringTransactionService
 
         if (request.IsActive.HasValue)
             item.IsActive = request.IsActive.Value;
+
+        if (request.AccountId.HasValue)
+            item.AccountId = request.AccountId.Value;
 
         item.UpdatedAt = DateTime.UtcNow;
 
@@ -142,6 +155,7 @@ public class RecurringTransactionService : IRecurringTransactionService
                     CategoryId = item.CategoryId,
                     Description = item.Description,
                     Date = item.NextOccurrenceDate,
+                    AccountId = item.AccountId,
                     User = user,
                     Category = category,
                 };
@@ -198,6 +212,8 @@ public class RecurringTransactionService : IRecurringTransactionService
             NextOccurrenceDate = item.NextOccurrenceDate,
             EndDate = item.EndDate,
             IsActive = item.IsActive,
+            AccountId = item.AccountId,
+            AccountName = item.Account?.Name,
             CreatedAt = item.CreatedAt,
         };
     }

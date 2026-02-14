@@ -12,6 +12,7 @@ public class RecurringTransaction
     public DateTime StartDate { get; set; }
     public DateTime NextOccurrenceDate { get; set; }
     public DateTime? EndDate { get; set; }
+    public int? AccountId { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
@@ -19,4 +20,5 @@ public class RecurringTransaction
     // Navigation properties
     public User? User { get; set; }
     public Category? Category { get; set; }
+    public Account? Account { get; set; }
 }

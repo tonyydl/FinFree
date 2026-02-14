@@ -13,4 +13,6 @@ public class UpdateRecurringTransactionRequest
     public DateTime? EndDate { get; set; }
 
     public bool? IsActive { get; set; }
+
+    public int? AccountId { get; set; }
 }

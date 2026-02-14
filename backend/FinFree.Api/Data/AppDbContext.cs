@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Category> Categories { get; set; }
     public DbSet<Budget> Budgets { get; set; }
     public DbSet<RecurringTransaction> RecurringTransactions { get; set; }
+    public DbSet<Account> Accounts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -58,6 +59,11 @@ public class AppDbContext : DbContext
                 .WithMany(c => c.Transactions)
                 .HasForeignKey(e => e.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Account)
+                .WithMany(a => a.Transactions)
+                .HasForeignKey(e => e.AccountId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Budget 設定
@@ -95,6 +101,23 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.Category)
                 .WithMany()
                 .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Account)
+                .WithMany(a => a.RecurringTransactions)
+                .HasForeignKey(e => e.AccountId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Account 設定
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Accounts)
+                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

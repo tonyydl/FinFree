@@ -15,5 +15,7 @@ public class RecurringTransactionResponse
     public DateTime NextOccurrenceDate { get; set; }
     public DateTime? EndDate { get; set; }
     public bool IsActive { get; set; }
+    public int? AccountId { get; set; }
+    public string? AccountName { get; set; }
     public DateTime CreatedAt { get; set; }
 }

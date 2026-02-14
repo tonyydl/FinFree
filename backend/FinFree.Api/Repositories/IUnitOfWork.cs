@@ -9,5 +9,6 @@ public interface IUnitOfWork : IDisposable
     IRepository<Category> Categories { get; }
     IRepository<Budget> Budgets { get; }
     IRepository<RecurringTransaction> RecurringTransactions { get; }
+    IRepository<Account> Accounts { get; }
     Task<int> SaveChangesAsync();
 }

@@ -11,5 +11,7 @@ public class TransactionResponse
     public string CategoryName { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateTime Date { get; set; }
+    public int? AccountId { get; set; }
+    public string? AccountName { get; set; }
     public DateTime CreatedAt { get; set; }
 }

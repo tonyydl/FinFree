@@ -23,6 +23,7 @@ public class TransactionService : ITransactionService
     {
         var transactions = await _context.Transactions
             .Include(t => t.Category)
+            .Include(t => t.Account)
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.Date)
             .ToListAsync();
@@ -36,6 +37,8 @@ public class TransactionService : ITransactionService
             CategoryName = t.Category.Name,
             Description = t.Description,
             Date = t.Date,
+            AccountId = t.AccountId,
+            AccountName = t.Account?.Name,
             CreatedAt = t.CreatedAt
         });
     }
@@ -44,6 +47,7 @@ public class TransactionService : ITransactionService
     {
         var transaction = await _context.Transactions
             .Include(t => t.Category)
+            .Include(t => t.Account)
             .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
         if (transaction == null)
@@ -58,6 +62,8 @@ public class TransactionService : ITransactionService
             CategoryName = transaction.Category.Name,
             Description = transaction.Description,
             Date = transaction.Date,
+            AccountId = transaction.AccountId,
+            AccountName = transaction.Account?.Name,
             CreatedAt = transaction.CreatedAt
         };
     }
@@ -70,6 +76,11 @@ public class TransactionService : ITransactionService
         if (user == null || category == null)
             throw new InvalidOperationException("使用者或分類不存在");
 
+        // 驗證帳戶
+        var account = await _unitOfWork.Accounts.GetByIdAsync(request.AccountId);
+        if (account == null)
+            throw new InvalidOperationException("帳戶不存在");
+
         var transaction = new Transaction
         {
             UserId = userId,
@@ -78,6 +89,7 @@ public class TransactionService : ITransactionService
             CategoryId = request.CategoryId,
             Description = request.Description,
             Date = request.Date,
+            AccountId = request.AccountId,
             User = user,
             Category = category
         };
@@ -94,6 +106,8 @@ public class TransactionService : ITransactionService
             CategoryName = category.Name,
             Description = transaction.Description,
             Date = transaction.Date,
+            AccountId = transaction.AccountId,
+            AccountName = account.Name,
             CreatedAt = transaction.CreatedAt
         };
     }
@@ -102,6 +116,7 @@ public class TransactionService : ITransactionService
     {
         var transaction = await _context.Transactions
             .Include(t => t.Category)
+            .Include(t => t.Account)
             .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
         if (transaction == null)
@@ -126,13 +141,17 @@ public class TransactionService : ITransactionService
         if (request.Date.HasValue)
             transaction.Date = request.Date.Value;
 
+        if (request.AccountId.HasValue)
+            transaction.AccountId = request.AccountId.Value;
+
         transaction.UpdatedAt = DateTime.UtcNow;
 
         _unitOfWork.Transactions.Update(transaction);
         await _unitOfWork.SaveChangesAsync();
 
-        // 重新載入以取得最新的 Category
+        // 重新載入以取得最新的 Category 和 Account
         await _context.Entry(transaction).Reference(t => t.Category).LoadAsync();
+        await _context.Entry(transaction).Reference(t => t.Account).LoadAsync();
 
         return new TransactionResponse
         {
@@ -143,6 +162,8 @@ public class TransactionService : ITransactionService
             CategoryName = transaction.Category.Name,
             Description = transaction.Description,
             Date = transaction.Date,
+            AccountId = transaction.AccountId,
+            AccountName = transaction.Account?.Name,
             CreatedAt = transaction.CreatedAt
         };
     }
