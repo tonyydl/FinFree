@@ -83,6 +83,17 @@ public class TransactionsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("report")]
+    public async Task<IActionResult> GetMonthlyReport([FromQuery] int year, [FromQuery] int month)
+    {
+        if (year < 2000 || year > 2100 || month < 1 || month > 12)
+            return BadRequest(new { message = "無效的年份或月份" });
+
+        var userId = GetUserId();
+        var report = await _transactionService.GetMonthlyReportAsync(year, month, userId);
+        return Ok(report);
+    }
+
     [HttpGet("statistics")]
     public async Task<IActionResult> GetStatistics()
     {

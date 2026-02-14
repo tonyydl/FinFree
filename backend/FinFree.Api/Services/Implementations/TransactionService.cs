@@ -352,6 +352,73 @@ public class TransactionService : ITransactionService
         return value;
     }
 
+    public async Task<MonthlyReportResponse> GetMonthlyReportAsync(int year, int month, int userId)
+    {
+        var startDate = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var endDate = startDate.AddMonths(1);
+
+        var transactions = await _context.Transactions
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId && t.Date >= startDate && t.Date < endDate)
+            .ToListAsync();
+
+        var totalIncome = transactions.Where(t => t.Type == TransactionType.Income).Sum(t => t.Amount);
+        var totalExpense = transactions.Where(t => t.Type == TransactionType.Expense).Sum(t => t.Amount);
+
+        // 支出分類排行
+        var expenseByCategory = transactions
+            .Where(t => t.Type == TransactionType.Expense)
+            .GroupBy(t => t.Category.Name)
+            .Select(g => new { Name = g.Key, Amount = g.Sum(t => t.Amount) })
+            .OrderByDescending(x => x.Amount)
+            .Select(x => new CategoryBreakdown
+            {
+                CategoryName = x.Name,
+                Amount = x.Amount,
+                Percentage = totalExpense > 0 ? Math.Round(x.Amount / totalExpense * 100, 1) : 0,
+            })
+            .ToList();
+
+        // 收入分類排行
+        var incomeByCategory = transactions
+            .Where(t => t.Type == TransactionType.Income)
+            .GroupBy(t => t.Category.Name)
+            .Select(g => new { Name = g.Key, Amount = g.Sum(t => t.Amount) })
+            .OrderByDescending(x => x.Amount)
+            .Select(x => new CategoryBreakdown
+            {
+                CategoryName = x.Name,
+                Amount = x.Amount,
+                Percentage = totalIncome > 0 ? Math.Round(x.Amount / totalIncome * 100, 1) : 0,
+            })
+            .ToList();
+
+        // 每日收支
+        var dailyExpenses = transactions
+            .GroupBy(t => t.Date.ToString("yyyy-MM-dd"))
+            .Select(g => new DailyExpense
+            {
+                Date = g.Key,
+                Income = g.Where(t => t.Type == TransactionType.Income).Sum(t => t.Amount),
+                Expense = g.Where(t => t.Type == TransactionType.Expense).Sum(t => t.Amount),
+            })
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        return new MonthlyReportResponse
+        {
+            Year = year,
+            Month = month,
+            TotalIncome = totalIncome,
+            TotalExpense = totalExpense,
+            Balance = totalIncome - totalExpense,
+            TransactionCount = transactions.Count,
+            ExpenseByCategory = expenseByCategory,
+            IncomeByCategory = incomeByCategory,
+            DailyExpenses = dailyExpenses,
+        };
+    }
+
     public async Task<StatisticsResponse> GetStatisticsAsync(int userId)
     {
         var transactions = await _unitOfWork.Transactions

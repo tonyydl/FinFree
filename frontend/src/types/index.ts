@@ -193,3 +193,29 @@ export interface StatisticsResponse {
   balance: number
   transactionCount: number
 }
+
+// ===== Reports =====
+
+export interface CategoryBreakdown {
+  categoryName: string
+  amount: number
+  percentage: number
+}
+
+export interface DailyExpense {
+  date: string
+  income: number
+  expense: number
+}
+
+export interface MonthlyReportResponse {
+  year: number
+  month: number
+  totalIncome: number
+  totalExpense: number
+  balance: number
+  transactionCount: number
+  expenseByCategory: CategoryBreakdown[]
+  incomeByCategory: CategoryBreakdown[]
+  dailyExpenses: DailyExpense[]
+}
