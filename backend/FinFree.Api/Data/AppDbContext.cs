@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Budget> Budgets { get; set; }
+    public DbSet<RecurringTransaction> RecurringTransactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,6 +78,24 @@ public class AppDbContext : DbContext
 
             // 同一使用者同月份同分類只能有一筆預算
             entity.HasIndex(e => new { e.UserId, e.Year, e.Month, e.CategoryId }).IsUnique();
+        });
+
+        // RecurringTransaction 設定
+        modelBuilder.Entity<RecurringTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.RecurringTransactions)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Category)
+                .WithMany()
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // 預設分類種子資料
