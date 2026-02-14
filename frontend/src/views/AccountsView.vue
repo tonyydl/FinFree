@@ -137,7 +137,7 @@ async function handleTransferSubmit() {
     fromAccountId: transferForm.value.fromAccountId!,
     toAccountId: transferForm.value.toAccountId!,
     amount: transferForm.value.amount!,
-    date: transferForm.value.date,
+    date: new Date(transferForm.value.date).toISOString(),
     description: transferForm.value.description || undefined,
   })
 
