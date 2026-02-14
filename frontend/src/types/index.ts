@@ -162,17 +162,36 @@ export interface RecurringTransactionResponse {
 
 // ===== Accounts =====
 
+export enum AccountType {
+  Cash = 0,
+  Bank = 1,
+  CreditCard = 2,
+  Investment = 3,
+  Other = 4,
+}
+
+export const AccountTypeLabels: Record<AccountType, string> = {
+  [AccountType.Cash]: '現金',
+  [AccountType.Bank]: '銀行',
+  [AccountType.CreditCard]: '信用卡',
+  [AccountType.Investment]: '投資',
+  [AccountType.Other]: '其他',
+}
+
 export interface CreateAccountRequest {
   name: string
+  accountType: AccountType
 }
 
 export interface UpdateAccountRequest {
   name: string
+  accountType: AccountType
 }
 
 export interface AccountResponse {
   id: number
   name: string
+  accountType: AccountType
   balance: number
   createdAt: string
 }

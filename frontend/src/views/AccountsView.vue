@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAccountStore } from '@/stores/account'
+import { AccountType, AccountTypeLabels } from '@/types'
 import type { AccountResponse } from '@/types'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -13,6 +14,7 @@ const formRef = ref<FormInstance>()
 
 const form = ref({
   name: '',
+  accountType: AccountType.Bank,
 })
 
 const rules: FormRules = {
@@ -55,12 +57,14 @@ onMounted(() => {
 function handleAdd() {
   editingAccount.value = null
   form.value.name = ''
+  form.value.accountType = AccountType.Bank
   dialogVisible.value = true
 }
 
 function handleEdit(row: AccountResponse) {
   editingAccount.value = row
   form.value.name = row.name
+  form.value.accountType = row.accountType
   dialogVisible.value = true
 }
 
@@ -74,13 +78,13 @@ async function handleSubmit() {
   if (!valid) return
 
   if (editingAccount.value) {
-    const success = await store.updateAccount(editingAccount.value.id, { name: form.value.name })
+    const success = await store.updateAccount(editingAccount.value.id, { name: form.value.name, accountType: form.value.accountType })
     if (success) {
       ElMessage.success('帳戶已更新')
       handleClose()
     }
   } else {
-    const success = await store.createAccount({ name: form.value.name })
+    const success = await store.createAccount({ name: form.value.name, accountType: form.value.accountType })
     if (success) {
       ElMessage.success('帳戶已新增')
       handleClose()
@@ -186,7 +190,12 @@ const totalBalance = () => store.accounts.reduce((sum, a) => sum + a.balance, 0)
       stripe
       style="width: 100%"
     >
-      <el-table-column prop="name" label="帳戶名稱" />
+      <el-table-column prop="name" label="帳戶名稱">
+        <template #default="{ row }">
+          {{ row.name }}
+          <el-tag size="small" style="margin-left: 6px" type="info">{{ AccountTypeLabels[row.accountType as AccountType] }}</el-tag>
+        </template>
+      </el-table-column>
 
       <el-table-column label="餘額" width="200">
         <template #default="{ row }">
@@ -231,6 +240,16 @@ const totalBalance = () => store.accounts.reduce((sum, a) => sum + a.balance, 0)
             maxlength="50"
             show-word-limit
           />
+        </el-form-item>
+        <el-form-item label="帳戶類型">
+          <el-select v-model="form.accountType" style="width: 100%">
+            <el-option
+              v-for="(label, value) in AccountTypeLabels"
+              :key="value"
+              :label="label"
+              :value="Number(value)"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
 

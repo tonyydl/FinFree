@@ -43,6 +43,7 @@ public class AccountService : IAccountService
         {
             Id = a.Id,
             Name = a.Name,
+            AccountType = a.AccountType,
             Balance = balances.GetValueOrDefault(a.Id, 0),
             CreatedAt = a.CreatedAt,
         });
@@ -64,6 +65,7 @@ public class AccountService : IAccountService
         {
             Id = account.Id,
             Name = account.Name,
+            AccountType = account.AccountType,
             Balance = balance,
             CreatedAt = account.CreatedAt,
         };
@@ -75,6 +77,7 @@ public class AccountService : IAccountService
         {
             UserId = userId,
             Name = request.Name,
+            AccountType = request.AccountType,
         };
 
         await _unitOfWork.Accounts.AddAsync(account);
@@ -84,6 +87,7 @@ public class AccountService : IAccountService
         {
             Id = account.Id,
             Name = account.Name,
+            AccountType = account.AccountType,
             Balance = 0,
             CreatedAt = account.CreatedAt,
         };
@@ -98,6 +102,7 @@ public class AccountService : IAccountService
             return null;
 
         account.Name = request.Name;
+        account.AccountType = request.AccountType;
         account.UpdatedAt = DateTime.UtcNow;
 
         _unitOfWork.Accounts.Update(account);
@@ -111,6 +116,7 @@ public class AccountService : IAccountService
         {
             Id = account.Id,
             Name = account.Name,
+            AccountType = account.AccountType,
             Balance = balance,
             CreatedAt = account.CreatedAt,
         };
