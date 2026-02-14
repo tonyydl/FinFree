@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useRecurringTransactionStore } from '@/stores/recurringTransaction'
 import { useCategoryStore } from '@/stores/category'
+import { useAccountStore } from '@/stores/account'
 import { TransactionType, RecurrenceFrequency } from '@/types'
 import type { RecurringTransactionResponse } from '@/types'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 
 const store = useRecurringTransactionStore()
 const categoryStore = useCategoryStore()
+const accountStore = useAccountStore()
 const formRef = ref<FormInstance>()
 
 const isEditing = computed(() => !!props.editingItem)
@@ -32,6 +34,7 @@ const form = reactive({
   startDate: '',
   endDate: '' as string | '',
   isActive: true,
+  accountId: null as number | null,
 })
 
 const rules: FormRules = {
@@ -44,6 +47,9 @@ const rules: FormRules = {
   ],
   startDate: [
     { required: true, message: '請選擇起始日期', trigger: 'change' },
+  ],
+  accountId: [
+    { required: true, message: '請選擇帳戶', trigger: 'change' },
   ],
 }
 
@@ -65,6 +71,7 @@ watch(() => form.type, () => {
 watch(() => props.visible, (val) => {
   if (val) {
     categoryStore.fetchCategories()
+    accountStore.fetchAccounts()
     if (props.editingItem) {
       form.amount = props.editingItem.amount
       form.type = props.editingItem.type
@@ -74,6 +81,7 @@ watch(() => props.visible, (val) => {
       form.startDate = props.editingItem.startDate
       form.endDate = props.editingItem.endDate ?? ''
       form.isActive = props.editingItem.isActive
+      form.accountId = props.editingItem.accountId
     } else {
       resetForm()
     }
@@ -89,6 +97,7 @@ function resetForm() {
   form.startDate = ''
   form.endDate = ''
   form.isActive = true
+  form.accountId = null
 }
 
 function handleClose() {
@@ -109,6 +118,7 @@ async function handleSubmit() {
       description: form.description || undefined,
       endDate: endDateStr,
       isActive: form.isActive,
+      accountId: form.accountId!,
     })
     if (success) {
       ElMessage.success('定期交易已更新')
@@ -123,6 +133,7 @@ async function handleSubmit() {
       frequency: form.frequency,
       startDate: startDateStr,
       endDate: endDateStr,
+      accountId: form.accountId!,
     })
     if (success) {
       ElMessage.success('定期交易已新增')
@@ -177,6 +188,23 @@ async function handleSubmit() {
             :key="cat.id"
             :label="cat.name"
             :value="cat.id"
+          />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="帳戶" prop="accountId">
+        <el-select
+          v-model="form.accountId"
+          placeholder="請選擇帳戶"
+          style="width: 100%"
+          :loading="accountStore.loading"
+          :disabled="isEditing"
+        >
+          <el-option
+            v-for="acc in accountStore.accounts"
+            :key="acc.id"
+            :label="acc.name"
+            :value="acc.id"
           />
         </el-select>
       </el-form-item>

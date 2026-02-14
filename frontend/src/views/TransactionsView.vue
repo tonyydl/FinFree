@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useTransactionStore } from '@/stores/transaction'
+import { useAccountStore } from '@/stores/account'
 import { TransactionType } from '@/types'
 import type { TransactionResponse } from '@/types'
 import TransactionDialog from '@/components/TransactionDialog.vue'
@@ -8,6 +9,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
 
 const transactionStore = useTransactionStore()
+const accountStore = useAccountStore()
 
 const dialogVisible = ref(false)
 const editingTransaction = ref<TransactionResponse | null>(null)
@@ -15,6 +17,7 @@ const editingTransaction = ref<TransactionResponse | null>(null)
 // 篩選條件
 const searchKeyword = ref('')
 const filterType = ref<TransactionType | ''>('')
+const filterAccountId = ref<number | ''>('')
 const filterStartDate = ref<string | null>(null)
 const filterEndDate = ref<string | null>(null)
 
@@ -24,6 +27,7 @@ const pageSize = ref(10)
 
 onMounted(() => {
   transactionStore.fetchTransactions()
+  accountStore.fetchAccounts()
 })
 
 // 篩選後的資料
@@ -42,6 +46,11 @@ const filteredTransactions = computed(() => {
   // 類型篩選
   if (filterType.value !== '') {
     result = result.filter(t => t.type === filterType.value)
+  }
+
+  // 帳戶篩選
+  if (filterAccountId.value !== '') {
+    result = result.filter(t => t.accountId === filterAccountId.value)
   }
 
   // 日期範圍篩選
@@ -99,6 +108,7 @@ function handleEndDateChange() {
 function clearFilters() {
   searchKeyword.value = ''
   filterType.value = ''
+  filterAccountId.value = ''
   filterStartDate.value = null
   filterEndDate.value = null
   currentPage.value = 1
@@ -200,6 +210,23 @@ async function handleDelete(row: TransactionResponse) {
           </el-select>
         </div>
         <div class="filter-item">
+          <span class="filter-label">帳戶：</span>
+          <el-select
+            v-model="filterAccountId"
+            placeholder="全部"
+            clearable
+            class="filter-type"
+            @change="handleFilterChange"
+          >
+            <el-option
+              v-for="acc in accountStore.accounts"
+              :key="acc.id"
+              :label="acc.name"
+              :value="acc.id"
+            />
+          </el-select>
+        </div>
+        <div class="filter-item">
           <span class="filter-label">開始：</span>
           <el-date-picker
             v-model="filterStartDate"
@@ -248,6 +275,12 @@ async function handleDelete(row: TransactionResponse) {
       </el-table-column>
 
       <el-table-column prop="categoryName" label="分類" width="120" />
+
+      <el-table-column label="帳戶" width="120">
+        <template #default="{ row }">
+          {{ row.accountName ?? '--' }}
+        </template>
+      </el-table-column>
 
       <el-table-column label="金額" width="150">
         <template #default="{ row }">

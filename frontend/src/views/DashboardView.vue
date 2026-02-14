@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useBudgetStore } from '@/stores/budget'
 import { useThemeStore } from '@/stores/theme'
 import { useRecurringTransactionStore } from '@/stores/recurringTransaction'
+import { useAccountStore } from '@/stores/account'
 import api from '@/api'
 import { TransactionType } from '@/types'
 import type { StatisticsResponse, TransactionResponse, BudgetResponse } from '@/types'
@@ -24,6 +25,7 @@ const authStore = useAuthStore()
 const budgetStore = useBudgetStore()
 const themeStore = useThemeStore()
 const recurringStore = useRecurringTransactionStore()
+const accountStore = useAccountStore()
 const statistics = ref<StatisticsResponse | null>(null)
 const transactions = ref<TransactionResponse[]>([])
 const loading = ref(false)
@@ -42,6 +44,7 @@ onMounted(async () => {
       api.get<StatisticsResponse>('/transactions/statistics'),
       api.get<TransactionResponse[]>('/transactions'),
       budgetStore.fetchBudgets(currentYear, currentMonth),
+      accountStore.fetchAccounts(),
     ])
     statistics.value = statsRes.data
     transactions.value = txRes.data
@@ -228,6 +231,24 @@ const hasTransactions = computed(() => transactions.value.length > 0)
       </div>
     </el-card>
 
+    <!-- 帳戶餘額 -->
+    <el-card v-if="accountStore.accounts.length > 0" shadow="hover" style="margin-top: 20px; margin-bottom: 20px">
+      <template #header>
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span>帳戶餘額</span>
+          <el-button text type="primary" @click="$router.push('/accounts')">管理帳戶</el-button>
+        </div>
+      </template>
+      <div class="account-summary">
+        <div v-for="acc in accountStore.accounts" :key="acc.id" class="account-summary-item">
+          <span>{{ acc.name }}</span>
+          <span :style="{ fontWeight: 'bold', color: acc.balance >= 0 ? '#67c23a' : '#f56c6c' }">
+            ${{ acc.balance.toLocaleString() }}
+          </span>
+        </div>
+      </div>
+    </el-card>
+
     <el-row v-if="hasTransactions" :gutter="20" style="margin-top: 8px">
       <el-col :xs="24" :sm="12" style="margin-bottom: 12px">
         <el-card shadow="hover">
@@ -288,6 +309,24 @@ const hasTransactions = computed(() => transactions.value.length > 0)
 .over-budget {
   color: #f56c6c;
   font-weight: bold;
+}
+
+.account-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.account-summary-item:last-child {
+  border-bottom: none;
 }
 
 .recent-list {

@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useTransactionStore } from '@/stores/transaction'
 import { useCategoryStore } from '@/stores/category'
+import { useAccountStore } from '@/stores/account'
 import { TransactionType } from '@/types'
 import type { TransactionResponse } from '@/types'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 
 const transactionStore = useTransactionStore()
 const categoryStore = useCategoryStore()
+const accountStore = useAccountStore()
 const formRef = ref<FormInstance>()
 
 const isEditing = computed(() => !!props.editingTransaction)
@@ -29,6 +31,7 @@ const form = reactive({
   categoryId: null as number | null,
   description: '',
   date: '',
+  accountId: null as number | null,
 })
 
 const rules: FormRules = {
@@ -41,6 +44,9 @@ const rules: FormRules = {
   ],
   date: [
     { required: true, message: '請選擇日期', trigger: 'change' },
+  ],
+  accountId: [
+    { required: true, message: '請選擇帳戶', trigger: 'change' },
   ],
 }
 
@@ -58,12 +64,14 @@ watch(() => form.type, () => {
 watch(() => props.visible, (val) => {
   if (val) {
     categoryStore.fetchCategories()
+    accountStore.fetchAccounts()
     if (props.editingTransaction) {
       form.amount = props.editingTransaction.amount
       form.type = props.editingTransaction.type
       form.categoryId = props.editingTransaction.categoryId
       form.description = props.editingTransaction.description ?? ''
       form.date = props.editingTransaction.date
+      form.accountId = props.editingTransaction.accountId
     } else {
       resetForm()
     }
@@ -76,6 +84,7 @@ function resetForm() {
   form.categoryId = null
   form.description = ''
   form.date = ''
+  form.accountId = null
 }
 
 function handleClose() {
@@ -96,6 +105,7 @@ async function handleSubmit() {
       categoryId: form.categoryId!,
       description: form.description || undefined,
       date: dateStr,
+      accountId: form.accountId!,
     })
     if (success) {
       ElMessage.success('交易記錄已更新')
@@ -108,6 +118,7 @@ async function handleSubmit() {
       categoryId: form.categoryId!,
       description: form.description || undefined,
       date: dateStr,
+      accountId: form.accountId!,
     })
     if (success) {
       ElMessage.success('交易記錄已新增')
@@ -161,6 +172,22 @@ async function handleSubmit() {
             :key="cat.id"
             :label="cat.name"
             :value="cat.id"
+          />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item label="帳戶" prop="accountId">
+        <el-select
+          v-model="form.accountId"
+          placeholder="請選擇帳戶"
+          style="width: 100%"
+          :loading="accountStore.loading"
+        >
+          <el-option
+            v-for="acc in accountStore.accounts"
+            :key="acc.id"
+            :label="acc.name"
+            :value="acc.id"
           />
         </el-select>
       </el-form-item>

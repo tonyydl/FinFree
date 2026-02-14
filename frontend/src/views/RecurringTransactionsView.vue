@@ -158,6 +158,12 @@ async function handleDelete(row: RecurringTransactionResponse) {
 
       <el-table-column prop="categoryName" label="分類" width="120" />
 
+      <el-table-column label="帳戶" width="120">
+        <template #default="{ row }">
+          {{ row.accountName ?? '--' }}
+        </template>
+      </el-table-column>
+
       <el-table-column label="金額" width="140">
         <template #default="{ row }">
           <span :style="{ color: row.type === TransactionType.Income ? '#67c23a' : '#f56c6c', fontWeight: 'bold' }">

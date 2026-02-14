@@ -32,6 +32,7 @@ export interface CreateTransactionRequest {
   categoryId: number
   description?: string
   date: string
+  accountId: number
 }
 
 export interface UpdateTransactionRequest {
@@ -40,6 +41,7 @@ export interface UpdateTransactionRequest {
   categoryId?: number
   description?: string
   date?: string
+  accountId?: number
 }
 
 export interface TransactionResponse {
@@ -50,6 +52,8 @@ export interface TransactionResponse {
   categoryName: string
   description: string | null
   date: string
+  accountId: number | null
+  accountName: string | null
   createdAt: string
 }
 
@@ -128,6 +132,7 @@ export interface CreateRecurringTransactionRequest {
   frequency: RecurrenceFrequency
   startDate: string
   endDate?: string | null
+  accountId: number
 }
 
 export interface UpdateRecurringTransactionRequest {
@@ -135,6 +140,7 @@ export interface UpdateRecurringTransactionRequest {
   description?: string
   endDate?: string | null
   isActive?: boolean
+  accountId?: number
 }
 
 export interface RecurringTransactionResponse {
@@ -149,6 +155,25 @@ export interface RecurringTransactionResponse {
   nextOccurrenceDate: string
   endDate: string | null
   isActive: boolean
+  accountId: number | null
+  accountName: string | null
+  createdAt: string
+}
+
+// ===== Accounts =====
+
+export interface CreateAccountRequest {
+  name: string
+}
+
+export interface UpdateAccountRequest {
+  name: string
+}
+
+export interface AccountResponse {
+  id: number
+  name: string
+  balance: number
   createdAt: string
 }
 
