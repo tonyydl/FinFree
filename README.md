@@ -73,8 +73,11 @@ FinFree/
 cp .env.example .env
 # 編輯 .env，設定安全的密碼與 JWT Key
 
-# 2. 啟動所有服務
+# 2. 啟動所有服務（首次或程式碼有更新時）
 docker compose up -d --build
+
+# 單純重啟（程式碼沒變）
+docker compose up -d
 ```
 
 啟動後開啟瀏覽器：**http://localhost**
