@@ -144,8 +144,6 @@ async function handleTransferSubmit() {
   if (success) {
     ElMessage.success('轉帳成功')
     handleTransferClose()
-  } else if (store.error) {
-    ElMessage.error(store.error)
   }
 }
 
