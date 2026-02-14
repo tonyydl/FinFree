@@ -1,127 +1,188 @@
 # FinFree - 個人記帳應用
 
-一個使用 ASP.NET Core 和 Vue.js 開發的全端記帳應用，目標是在一個月內完成 MVP 版本。
+一個使用 ASP.NET Core 9 + Vue 3 開發的全端個人財務管理應用。
+
+## 功能
+
+- 使用者註冊／登入（JWT 認證）
+- 多帳戶管理（現金、銀行、信用卡、投資等）
+- 交易記錄新增／編輯／刪除，支援關鍵字、分類、帳戶、日期篩選
+- 週期性交易（每日／每週／每月／每年自動建立）
+- 預算管理，超標／即將用完通知
+- 月份報表（收支摘要、分類圓餅圖、每日趨勢圖）
+- Dashboard 本月收支摘要、帳戶餘額
+- CSV 交易記錄匯入
+- 深色模式
+- PWA 支援（可安裝至桌面）
 
 ## 技術棧
 
 ### 後端
 - ASP.NET Core 9.0 Web API
-- Entity Framework Core 9.0
-- PostgreSQL 16
+- Entity Framework Core 9.0 + PostgreSQL 16
 - JWT 認證
-- Repository Pattern
+- Repository + UnitOfWork + Service 架構
 
-### 前端 (規劃中)
-- Vue.js 3
-- TypeScript
-- Pinia (狀態管理)
-- Axios (HTTP 客戶端)
+### 前端
+- Vue 3 + TypeScript + Vite
+- Pinia（狀態管理）
+- Element Plus（UI）
+- Chart.js（圖表）
+- Axios
 
 ## 專案結構
 
 ```
 FinFree/
 ├── backend/
+│   ├── Dockerfile
 │   └── FinFree.Api/
 │       ├── Controllers/         # API 控制器
-│       ├── Models/              # 資料模型 (Entities)
-│       ├── DTOs/                # 資料傳輸物件
-│       ├── Data/                # DbContext
+│       ├── Models/              # 資料模型
+│       ├── DTOs/                # 請求／回應 DTO
+│       ├── Data/                # AppDbContext
 │       ├── Repositories/        # Repository Pattern
 │       ├── Services/            # 商業邏輯層
-│       └── Helpers/             # 輔助類別
-├── frontend/                    # (待建立)
-├── docker-compose.yml           # Docker 配置
+│       ├── Migrations/          # EF Core Migrations
+│       └── Program.cs
+├── frontend/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   └── src/
+│       ├── views/               # 頁面
+│       ├── components/          # 元件
+│       ├── stores/              # Pinia stores
+│       ├── router/              # Vue Router
+│       ├── api/                 # Axios 設定
+│       └── types/               # TypeScript 型別
+├── docker-compose.yml
+├── .env.example
 └── README.md
 ```
-
-## 主要功能
-
-- [x] 使用者註冊/登入 (JWT 認證)
-- [x] 新增/編輯/刪除交易記錄
-- [x] 查詢交易列表
-- [x] 統計資訊 (總收入、總支出、餘額)
-- [x] 系統預設分類
-- [ ] 前端介面
-- [ ] 日期篩選
-- [ ] 圖表顯示
 
 ## 快速開始
 
 ### 前置需求
 
-- .NET 9.0 SDK
 - Docker Desktop
-- Git
+
+### 一鍵啟動（生產模式）
+
+```bash
+# 1. 複製環境變數範本
+cp .env.example .env
+# 編輯 .env，設定安全的密碼與 JWT Key
+
+# 2. 啟動所有服務
+docker compose up -d --build
+```
+
+啟動後開啟瀏覽器：**http://localhost**
+
+> 首次啟動會自動執行資料庫 migration，建立所有資料表。
+
+### 停止服務
+
+```bash
+docker compose down
+```
+
+> 資料存放於 Docker volume，停止後不會消失。若要同時刪除資料：`docker compose down -v`
+
+---
+
+## 本地開發
+
+### 前置需求
+
+- .NET 9.0 SDK
+- Docker Desktop（用於 PostgreSQL）
+- Node.js 22+
 
 ### 1. 啟動資料庫
 
 ```bash
-# 在專案根目錄執行
-docker-compose up -d
+docker compose up -d postgres
 ```
 
-### 2. 執行資料庫遷移
-
-```bash
-cd backend/FinFree.Api
-dotnet ef migrations add InitialCreate
-dotnet ef database update
-```
-
-### 3. 啟動 API
+### 2. 啟動後端
 
 ```bash
 cd backend/FinFree.Api
 dotnet run
 ```
 
-API 將在 `https://localhost:5001` 和 `http://localhost:5000` 上運行
+API 運行於 `http://localhost:5016`，Swagger UI：`http://localhost:5016/swagger`
 
-### 4. 開啟 Swagger UI
+### 3. 啟動前端
 
-瀏覽器訪問: `http://localhost:5000/swagger`
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+前端運行於 `http://localhost:5173`
+
+---
+
+## 環境變數
+
+參考 `.env.example`：
+
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your-secure-password
+JWT_KEY=your-super-secret-key-minimum-32-characters-long
+```
+
+---
 
 ## API 端點
 
-### 認證
-- `POST /api/auth/register` - 使用者註冊
-- `POST /api/auth/login` - 使用者登入
+| 方法 | 路徑 | 說明 |
+|------|------|------|
+| POST | `/api/auth/register` | 使用者註冊 |
+| POST | `/api/auth/login` | 使用者登入 |
+| GET/POST | `/api/accounts` | 帳戶列表／新增 |
+| PUT/DELETE | `/api/accounts/{id}` | 更新／刪除帳戶 |
+| POST | `/api/accounts/transfer` | 帳戶轉帳 |
+| GET/POST | `/api/transactions` | 交易列表／新增 |
+| PUT/DELETE | `/api/transactions/{id}` | 更新／刪除交易 |
+| POST | `/api/transactions/import` | CSV 匯入 |
+| GET | `/api/transactions/report` | 月份報表 |
+| GET/POST | `/api/categories` | 分類列表／新增 |
+| GET/POST | `/api/budgets` | 預算列表／新增 |
+| GET/POST | `/api/recurring-transactions` | 週期交易列表／新增 |
+| PUT | `/api/auth/username` | 修改使用者名稱 |
+| PUT | `/api/auth/password` | 修改密碼 |
 
-### 交易 (需要認證)
-- `GET /api/transactions` - 取得所有交易
-- `GET /api/transactions/{id}` - 取得單筆交易
-- `POST /api/transactions` - 新增交易
-- `PUT /api/transactions/{id}` - 更新交易
-- `DELETE /api/transactions/{id}` - 刪除交易
-- `GET /api/transactions/statistics` - 取得統計資訊
+---
 
-### 分類 (需要認證)
-- `GET /api/categories` - 取得所有分類
+## 常見問題
 
-## 資料庫配置
+**Q: Docker 無法啟動？**
+啟動 Docker Desktop，等待圖示變為綠色後重試。
 
-預設連線字串在 `appsettings.json`:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=finfree;Username=postgres;Password=postgres"
-  }
-}
+**Q: Port 被佔用？**
+```bash
+# 修改 docker-compose.yml 中的 port mapping，例如改為 8080:80
 ```
 
-## 開發進度
+**Q: 如何重置資料庫？**
+```bash
+docker compose down -v   # 刪除 volume
+docker compose up -d     # 重新啟動並自動建立資料表
+```
 
-- [x] 後端專案架構建立
-- [x] Entity Models 設計
-- [x] Repository Pattern 實作
-- [x] JWT 認證實作
-- [x] CRUD API 實作
-- [ ] 前端專案建立
-- [ ] 前後端整合
-- [ ] 單元測試
-- [ ] 部署
+**Q: 如何新增 EF Core Migration？**
+```bash
+cd backend/FinFree.Api
+dotnet ef migrations add 描述名稱
+dotnet ef database update
+```
+
+---
 
 ## 授權
 
