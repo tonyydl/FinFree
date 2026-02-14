@@ -174,6 +174,14 @@ public class AccountService : IAccountService
         if (fromAccount == null || toAccount == null)
             throw new InvalidOperationException("帳戶不存在");
 
+        // 檢查來源帳戶餘額是否足夠
+        var fromBalance = await _context.Transactions
+            .Where(t => t.AccountId == request.FromAccountId && t.UserId == userId)
+            .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
+
+        if (fromBalance < request.Amount)
+            throw new InvalidOperationException("來源帳戶餘額不足");
+
         var user = await _unitOfWork.Users.GetByIdAsync(userId);
         if (user == null)
             throw new InvalidOperationException("系統資料異常");
