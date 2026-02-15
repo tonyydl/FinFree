@@ -10,20 +10,18 @@ namespace FinFree.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // 移除舊的不含 NULL 處理的唯一索引
-            migrationBuilder.DropIndex(
-                name: "IX_Budgets_UserId_Year_Month_CategoryId",
-                table: "Budgets");
+            // 移除舊的不含 NULL 處理的唯一索引（若已手動移除則跳過）
+            migrationBuilder.Sql(@"DROP INDEX IF EXISTS ""IX_Budgets_UserId_Year_Month_CategoryId"";");
 
             // 分類預算唯一約束（CategoryId 有值時）
             migrationBuilder.Sql(
-                @"CREATE UNIQUE INDEX ""IX_Budgets_UserId_Year_Month_CategoryId""
+                @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Budgets_UserId_Year_Month_CategoryId""
                   ON ""Budgets""(""UserId"", ""Year"", ""Month"", ""CategoryId"")
                   WHERE ""CategoryId"" IS NOT NULL;");
 
             // 整體預算唯一約束（CategoryId 為 NULL 時）
             migrationBuilder.Sql(
-                @"CREATE UNIQUE INDEX ""IX_Budgets_UserId_Year_Month_Overall""
+                @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Budgets_UserId_Year_Month_Overall""
                   ON ""Budgets""(""UserId"", ""Year"", ""Month"")
                   WHERE ""CategoryId"" IS NULL;");
         }
