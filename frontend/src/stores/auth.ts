@@ -59,7 +59,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout(): void {
+  async function logout(): Promise<void> {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // 即使後端呼叫失敗，仍清除本地狀態
+    }
     token.value = null
     username.value = null
     email.value = null
