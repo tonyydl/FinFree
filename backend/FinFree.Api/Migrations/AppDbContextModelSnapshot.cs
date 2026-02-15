@@ -89,7 +89,12 @@ namespace FinFree.Api.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("UserId", "Year", "Month", "CategoryId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"CategoryId\" IS NOT NULL");
+
+                    b.HasIndex("UserId", "Year", "Month")
+                        .IsUnique()
+                        .HasFilter("\"CategoryId\" IS NULL");
 
                     b.ToTable("Budgets");
                 });
