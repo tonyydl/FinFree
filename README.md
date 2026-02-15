@@ -135,6 +135,34 @@ npm run dev
 
 前端運行於 `http://localhost:5173`
 
+### 4. 塞測試假資料（可選）
+
+後端啟動後，執行腳本快速建立測試帳號與假資料：
+
+```powershell
+.\scripts\seed-dev-data.ps1
+```
+
+建立內容：
+
+| 項目 | 內容 |
+|------|------|
+| 測試帳號 | `test@finfree.dev` / `Test1234!` |
+| 帳戶 | 現金、玉山銀行、國泰信用卡、股票帳戶 |
+| 交易 | 近 3 個月約 70 筆收支記錄 |
+| 預算 | 本月 6 筆分類預算 |
+| 定期交易 | 薪資、房租、保險、訂閱服務共 5 筆 |
+
+**重置假資料：**
+
+```powershell
+# 1. 刪除測試帳號（會 cascade 清除所有關聯資料）
+docker exec finfree-postgres psql -U postgres -d finfree_dev -c 'DELETE FROM "Users" WHERE "Email" = '"'"'test@finfree.dev'"'"';'
+
+# 2. 重新塞資料
+.\scripts\seed-dev-data.ps1
+```
+
 ---
 
 ## 環境變數
