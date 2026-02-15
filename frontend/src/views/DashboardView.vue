@@ -41,14 +41,14 @@ onMounted(async () => {
     // 先執行到期的定期交易，再載入資料
     await recurringStore.executePending()
 
-    const [statsRes, txRes] = await Promise.all([
+    const [statsResult, txResult] = await Promise.allSettled([
       api.get<StatisticsResponse>('/transactions/statistics'),
       api.get<TransactionResponse[]>('/transactions'),
       budgetStore.fetchBudgets(currentYear, currentMonth),
       accountStore.fetchAccounts(),
     ])
-    statistics.value = statsRes.data
-    transactions.value = txRes.data
+    if (statsResult.status === 'fulfilled') statistics.value = statsResult.value.data
+    if (txResult.status === 'fulfilled') transactions.value = txResult.value.data
 
     // 預算提醒：超過 80% 或已超標
     budgetStore.budgets.forEach(b => {

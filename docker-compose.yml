@@ -46,6 +46,7 @@ services:
       Jwt__Audience: FinFree
       Jwt__ExpiryInMinutes: 10080
       Redis__ConnectionString: "redis:6379"
+      Cors__AllowedOrigins: "http://localhost,http://localhost:80"
       ASPNETCORE_ENVIRONMENT: Production
     depends_on:
       postgres:

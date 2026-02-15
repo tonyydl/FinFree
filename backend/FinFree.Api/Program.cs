@@ -1,6 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using FinFree.Api.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -121,10 +123,11 @@ builder.Services.AddCors(options =>
             policy.WithOrigins(allowedOrigins.Split(','))
                   .AllowAnyMethod()
                   .AllowAnyHeader();
-        else
+        else if (builder.Environment.IsDevelopment())
             policy.AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader();
+        // Production 未設定 AllowedOrigins 時不加任何規則（CORS 全擋）
     });
 });
 
@@ -138,6 +141,22 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+
+// Rate Limiting：登入/註冊每分鐘最多 10 次（依 IP）
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+            }));
+    options.RejectionStatusCode = 429;
+});
 
 var app = builder.Build();
 
@@ -159,6 +178,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

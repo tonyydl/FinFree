@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
 
 const api: AxiosInstance = axios.create({
   baseURL: '/api',
@@ -34,9 +35,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       localStorage.removeItem('user')
 
-      const currentPath = window.location.pathname
-      if (currentPath !== '/login' && currentPath !== '/register') {
-        window.location.href = '/login'
+      const currentName = router.currentRoute.value.name
+      if (currentName !== 'Login' && currentName !== 'Register') {
+        router.push({ name: 'Login' })
       }
     } else if (error.response?.data?.message) {
       ElMessage.error(error.response.data.message)

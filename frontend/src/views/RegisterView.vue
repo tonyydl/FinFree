@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { RegisterRequest } from '@/types'
@@ -13,7 +13,19 @@ const form = reactive<RegisterRequest>({
   password: '',
 })
 
+const confirmPassword = ref('')
+const validationError = ref('')
+
 async function handleRegister() {
+  validationError.value = ''
+  if (form.password.length < 6) {
+    validationError.value = '密碼至少需要 6 個字元'
+    return
+  }
+  if (form.password !== confirmPassword.value) {
+    validationError.value = '兩次輸入的密碼不一致'
+    return
+  }
   const success = await authStore.register(form)
   if (success) {
     router.push({ name: 'Dashboard' })
@@ -37,6 +49,17 @@ async function handleRegister() {
         <el-form-item label="密碼">
           <el-input v-model="form.password" type="password" placeholder="請輸入密碼（至少 6 字元）" show-password />
         </el-form-item>
+        <el-form-item label="確認密碼">
+          <el-input v-model="confirmPassword" type="password" placeholder="請再次輸入密碼" show-password />
+        </el-form-item>
+        <el-alert
+          v-if="validationError"
+          :title="validationError"
+          type="error"
+          show-icon
+          :closable="false"
+          style="margin-bottom: 16px"
+        />
         <el-alert
           v-if="authStore.error"
           :title="authStore.error"
