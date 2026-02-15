@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using FinFree.Api.Data;
 using FinFree.Api.DTOs.Requests;
 using FinFree.Api.DTOs.Responses;
 using FinFree.Api.Models;
@@ -11,61 +10,32 @@ namespace FinFree.Api.Services.Implementations;
 public class TransactionService : ITransactionService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly AppDbContext _context;
 
-    public TransactionService(IUnitOfWork unitOfWork, AppDbContext context)
+    public TransactionService(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _context = context;
     }
 
     public async Task<IEnumerable<TransactionResponse>> GetAllAsync(int userId)
     {
-        var transactions = await _context.Transactions
+        var transactions = await _unitOfWork.Transactions.Query()
             .Include(t => t.Category)
             .Include(t => t.Account)
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.Date)
             .ToListAsync();
 
-        return transactions.Select(t => new TransactionResponse
-        {
-            Id = t.Id,
-            Amount = t.Amount,
-            Type = t.Type,
-            CategoryId = t.CategoryId,
-            CategoryName = t.Category.Name,
-            Description = t.Description,
-            Date = t.Date,
-            AccountId = t.AccountId,
-            AccountName = t.Account?.Name,
-            CreatedAt = t.CreatedAt
-        });
+        return transactions.Select(MapToResponse);
     }
 
     public async Task<TransactionResponse?> GetByIdAsync(int id, int userId)
     {
-        var transaction = await _context.Transactions
+        var transaction = await _unitOfWork.Transactions.Query()
             .Include(t => t.Category)
             .Include(t => t.Account)
             .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
 
-        if (transaction == null)
-            return null;
-
-        return new TransactionResponse
-        {
-            Id = transaction.Id,
-            Amount = transaction.Amount,
-            Type = transaction.Type,
-            CategoryId = transaction.CategoryId,
-            CategoryName = transaction.Category.Name,
-            Description = transaction.Description,
-            Date = transaction.Date,
-            AccountId = transaction.AccountId,
-            AccountName = transaction.Account?.Name,
-            CreatedAt = transaction.CreatedAt
-        };
+        return transaction == null ? null : MapToResponse(transaction);
     }
 
     public async Task<TransactionResponse> CreateAsync(CreateTransactionRequest request, int userId)
@@ -79,9 +49,8 @@ public class TransactionService : ITransactionService
         if (category.UserId != null && category.UserId != userId)
             throw new InvalidOperationException("無權使用此分類");
 
-        // 驗證帳戶
         var account = await _unitOfWork.Accounts.GetByIdAsync(request.AccountId);
-        if (account == null)
+        if (account is null)
             throw new InvalidOperationException("帳戶不存在");
 
         if (account.UserId != userId)
@@ -120,7 +89,7 @@ public class TransactionService : ITransactionService
 
     public async Task<TransactionResponse?> UpdateAsync(int id, UpdateTransactionRequest request, int userId)
     {
-        var transaction = await _context.Transactions
+        var transaction = await _unitOfWork.Transactions.Query()
             .Include(t => t.Category)
             .Include(t => t.Account)
             .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
@@ -161,22 +130,13 @@ public class TransactionService : ITransactionService
         await _unitOfWork.SaveChangesAsync();
 
         // 重新載入以取得最新的 Category 和 Account
-        await _context.Entry(transaction).Reference(t => t.Category).LoadAsync();
-        await _context.Entry(transaction).Reference(t => t.Account).LoadAsync();
+        await _unitOfWork.Transactions.Query()
+            .Where(t => t.Id == transaction.Id)
+            .Include(t => t.Category)
+            .Include(t => t.Account)
+            .FirstOrDefaultAsync();
 
-        return new TransactionResponse
-        {
-            Id = transaction.Id,
-            Amount = transaction.Amount,
-            Type = transaction.Type,
-            CategoryId = transaction.CategoryId,
-            CategoryName = transaction.Category.Name,
-            Description = transaction.Description,
-            Date = transaction.Date,
-            AccountId = transaction.AccountId,
-            AccountName = transaction.Account?.Name,
-            CreatedAt = transaction.CreatedAt
-        };
+        return MapToResponse(transaction);
     }
 
     public async Task<bool> DeleteAsync(int id, int userId)
@@ -195,7 +155,7 @@ public class TransactionService : ITransactionService
 
     public async Task<byte[]> ExportCsvAsync(int userId)
     {
-        var transactions = await _context.Transactions
+        var transactions = await _unitOfWork.Transactions.Query()
             .Include(t => t.Category)
             .Where(t => t.UserId == userId)
             .OrderByDescending(t => t.Date)
@@ -224,7 +184,7 @@ public class TransactionService : ITransactionService
         var errors = new List<string>();
 
         var account = await _unitOfWork.Accounts.GetByIdAsync(accountId);
-        if (account == null)
+        if (account is null)
             throw new InvalidOperationException("帳戶不存在");
 
         if (account.UserId != userId)
@@ -286,19 +246,18 @@ public class TransactionService : ITransactionService
 
                 var description = fields.Length > 4 ? fields[4].Trim() : null;
 
-                // 尋找或建立分類（優先使用者自訂，其次系統分類）
-                var category = await _context.Categories
+                var category = await _unitOfWork.Categories.Query()
                     .FirstOrDefaultAsync(c => c.Name == categoryName && c.Type == type && (c.UserId == userId || c.UserId == null));
 
                 if (category == null)
                 {
                     category = new Category { Name = categoryName, Type = type, UserId = userId };
-                    _context.Categories.Add(category);
-                    await _context.SaveChangesAsync();
+                    await _unitOfWork.Categories.AddAsync(category);
+                    await _unitOfWork.SaveChangesAsync();
                 }
 
                 var user = await _unitOfWork.Users.GetByIdAsync(userId);
-                if (user == null) throw new InvalidOperationException("使用者不存在");
+                if (user is null) throw new InvalidOperationException("使用者不存在");
 
                 var transaction = new Transaction
                 {
@@ -329,49 +288,12 @@ public class TransactionService : ITransactionService
         return (imported, failed, errors);
     }
 
-    private static string[] ParseCsvLine(string line)
-    {
-        var fields = new List<string>();
-        var i = 0;
-        while (i < line.Length)
-        {
-            if (line[i] == '"')
-            {
-                i++;
-                var sb = new System.Text.StringBuilder();
-                while (i < line.Length)
-                {
-                    if (line[i] == '"' && i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i += 2; }
-                    else if (line[i] == '"') { i++; break; }
-                    else { sb.Append(line[i]); i++; }
-                }
-                fields.Add(sb.ToString());
-                if (i < line.Length && line[i] == ',') i++;
-            }
-            else
-            {
-                var end = line.IndexOf(',', i);
-                if (end == -1) { fields.Add(line[i..]); break; }
-                fields.Add(line[i..end]);
-                i = end + 1;
-            }
-        }
-        return fields.ToArray();
-    }
-
-    private static string EscapeCsv(string value)
-    {
-        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
-            return $"\"{value.Replace("\"", "\"\"")}\"";
-        return value;
-    }
-
     public async Task<MonthlyReportResponse> GetMonthlyReportAsync(int year, int month, int userId)
     {
         var startDate = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = startDate.AddMonths(1);
 
-        var transactions = await _context.Transactions
+        var transactions = await _unitOfWork.Transactions.Query()
             .Include(t => t.Category)
             .Where(t => t.UserId == userId && t.Date >= startDate && t.Date < endDate)
             .ToListAsync();
@@ -379,7 +301,6 @@ public class TransactionService : ITransactionService
         var totalIncome = transactions.Where(t => t.Type == TransactionType.Income).Sum(t => t.Amount);
         var totalExpense = transactions.Where(t => t.Type == TransactionType.Expense).Sum(t => t.Amount);
 
-        // 支出分類排行
         var expenseByCategory = transactions
             .Where(t => t.Type == TransactionType.Expense)
             .GroupBy(t => t.Category.Name)
@@ -393,7 +314,6 @@ public class TransactionService : ITransactionService
             })
             .ToList();
 
-        // 收入分類排行
         var incomeByCategory = transactions
             .Where(t => t.Type == TransactionType.Income)
             .GroupBy(t => t.Category.Name)
@@ -407,7 +327,6 @@ public class TransactionService : ITransactionService
             })
             .ToList();
 
-        // 每日收支
         var dailyExpenses = transactions
             .GroupBy(t => t.Date.ToString("yyyy-MM-dd"))
             .Select(g => new DailyExpense
@@ -455,5 +374,56 @@ public class TransactionService : ITransactionService
             Balance = totalIncome - totalExpense,
             TransactionCount = transactionList.Count
         };
+    }
+
+    private static TransactionResponse MapToResponse(Transaction t) => new()
+    {
+        Id = t.Id,
+        Amount = t.Amount,
+        Type = t.Type,
+        CategoryId = t.CategoryId,
+        CategoryName = t.Category.Name,
+        Description = t.Description,
+        Date = t.Date,
+        AccountId = t.AccountId,
+        AccountName = t.Account?.Name,
+        CreatedAt = t.CreatedAt
+    };
+
+    private static string[] ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        var i = 0;
+        while (i < line.Length)
+        {
+            if (line[i] == '"')
+            {
+                i++;
+                var sb = new System.Text.StringBuilder();
+                while (i < line.Length)
+                {
+                    if (line[i] == '"' && i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i += 2; }
+                    else if (line[i] == '"') { i++; break; }
+                    else { sb.Append(line[i]); i++; }
+                }
+                fields.Add(sb.ToString());
+                if (i < line.Length && line[i] == ',') i++;
+            }
+            else
+            {
+                var end = line.IndexOf(',', i);
+                if (end == -1) { fields.Add(line[i..]); break; }
+                fields.Add(line[i..end]);
+                i = end + 1;
+            }
+        }
+        return [.. fields];
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
     }
 }
