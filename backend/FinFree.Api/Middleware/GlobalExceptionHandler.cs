@@ -33,7 +33,7 @@ public class GlobalExceptionHandler
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning(ex, "未授權存取");
-            await WriteResponseAsync(context, HttpStatusCode.Forbidden, ex.Message);
+            await WriteResponseAsync(context, HttpStatusCode.Unauthorized, ex.Message);
         }
         catch (Exception ex)
         {

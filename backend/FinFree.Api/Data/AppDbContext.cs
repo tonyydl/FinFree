@@ -82,8 +82,15 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 同一使用者同月份同分類只能有一筆預算
-            entity.HasIndex(e => new { e.UserId, e.Year, e.Month, e.CategoryId }).IsUnique();
+            // 分類預算：同使用者同月同分類只能一筆（CategoryId 有值時）
+            entity.HasIndex(e => new { e.UserId, e.Year, e.Month, e.CategoryId })
+                .IsUnique()
+                .HasFilter("\"CategoryId\" IS NOT NULL");
+
+            // 整體預算：同使用者同月只能一筆（CategoryId 為 NULL 時）
+            entity.HasIndex(e => new { e.UserId, e.Year, e.Month })
+                .IsUnique()
+                .HasFilter("\"CategoryId\" IS NULL");
         });
 
         // RecurringTransaction 設定

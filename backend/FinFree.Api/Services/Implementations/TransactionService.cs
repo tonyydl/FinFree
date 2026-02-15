@@ -130,13 +130,13 @@ public class TransactionService : ITransactionService
         await _unitOfWork.SaveChangesAsync();
 
         // 重新載入以取得最新的 Category 和 Account
-        await _unitOfWork.Transactions.Query()
+        var updated = await _unitOfWork.Transactions.Query()
             .Where(t => t.Id == transaction.Id)
             .Include(t => t.Category)
             .Include(t => t.Account)
             .FirstOrDefaultAsync();
 
-        return MapToResponse(transaction);
+        return MapToResponse(updated ?? transaction);
     }
 
     public async Task<bool> DeleteAsync(int id, int userId)

@@ -8,6 +8,8 @@ public abstract class BaseController : ControllerBase
     protected int GetUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.Parse(userIdClaim ?? "0");
+        if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
+            throw new UnauthorizedAccessException("無效的使用者憑證");
+        return userId;
     }
 }
