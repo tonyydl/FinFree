@@ -127,7 +127,8 @@ builder.Services.AddCors(options =>
             policy.AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader();
-        // Production ?�設�?AllowedOrigins ?��??�任何�??��?CORS ?��?�?    });
+        // Production 未設定 AllowedOrigins 時不加任何規則（CORS 全擋）
+    });
 });
 
 // Memory Cache
@@ -144,7 +145,8 @@ builder.Services.AddScoped<IBudgetService, BudgetService>();
 builder.Services.AddScoped<IRecurringTransactionService, RecurringTransactionService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 
-// Rate Limiting：登??註�?每�??��?�?10 次�?�?IP�?builder.Services.AddRateLimiter(options =>
+// Rate Limiting：登入/註冊每分鐘最多 10 次（依 IP）
+builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("auth", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
@@ -161,7 +163,7 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 
 var app = builder.Build();
 
-// ?��??��?資�?�?Migration
+// 自動執行資料庫 Migration
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
