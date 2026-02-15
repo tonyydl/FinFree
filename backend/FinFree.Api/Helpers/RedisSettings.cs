@@ -1,0 +1,6 @@
+namespace FinFree.Api.Helpers;
+
+public class RedisSettings
+{
+    public string ConnectionString { get; set; } = "localhost:6379";
+}

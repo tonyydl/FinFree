@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FinFree.Api.DTOs.Requests;
 using FinFree.Api.Services.Interfaces;
@@ -41,5 +43,16 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Email 或密碼錯誤" });
 
         return Ok(result);
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+        if (jti != null)
+            await _authService.LogoutAsync(jti);
+
+        return NoContent();
     }
 }

@@ -20,6 +20,15 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: finfree-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - finfree-network
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -30,11 +39,14 @@ services:
       Jwt__Key: ${JWT_KEY:?JWT_KEY is required. Please set it in .env file}
       Jwt__Issuer: FinFree
       Jwt__Audience: FinFree
-      Jwt__ExpiryInMinutes: 60
+      Jwt__ExpiryInMinutes: 10080
+      Redis__ConnectionString: "redis:6379"
       ASPNETCORE_ENVIRONMENT: Production
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - finfree-network
     restart: unless-stopped

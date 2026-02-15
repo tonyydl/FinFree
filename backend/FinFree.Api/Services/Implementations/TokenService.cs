@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using FinFree.Api.Helpers;
 using FinFree.Api.Models;
 using FinFree.Api.Services.Interfaces;
@@ -12,10 +13,12 @@ namespace FinFree.Api.Services.Implementations;
 public class TokenService : ITokenService
 {
     private readonly JwtSettings _jwtSettings;
+    private readonly IConnectionMultiplexer _redis;
 
-    public TokenService(IOptions<JwtSettings> jwtSettings)
+    public TokenService(IOptions<JwtSettings> jwtSettings, IConnectionMultiplexer redis)
     {
         _jwtSettings = jwtSettings.Value;
+        _redis = redis;
     }
 
     public string GenerateToken(User user)
@@ -40,5 +43,23 @@ public class TokenService : ITokenService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public async Task StoreTokenAsync(string jti, int userId, TimeSpan expiry)
+    {
+        var db = _redis.GetDatabase();
+        await db.StringSetAsync($"session:{jti}", userId.ToString(), expiry);
+    }
+
+    public async Task RevokeTokenAsync(string jti)
+    {
+        var db = _redis.GetDatabase();
+        await db.KeyDeleteAsync($"session:{jti}");
+    }
+
+    public async Task<bool> IsTokenValidAsync(string jti)
+    {
+        var db = _redis.GetDatabase();
+        return await db.KeyExistsAsync($"session:{jti}");
     }
 }
