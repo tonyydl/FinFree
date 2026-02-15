@@ -50,6 +50,42 @@ function formatCurrency(value: number): string {
   return `$${value.toLocaleString()}`
 }
 
+function exportCsv() {
+  if (!report.value) return
+
+  const rows: string[][] = [
+    ['月份報表', `${report.value.year}年${report.value.month}月`],
+    [],
+    ['摘要'],
+    ['項目', '金額'],
+    ['總收入', report.value.totalIncome.toString()],
+    ['總支出', report.value.totalExpense.toString()],
+    ['結餘', report.value.balance.toString()],
+    ['交易筆數', report.value.transactionCount.toString()],
+    [],
+    ['支出分類'],
+    ['分類', '金額', '佔比'],
+    ...report.value.expenseByCategory.map(c => [c.categoryName, c.amount.toString(), `${c.percentage}%`]),
+    [],
+    ['收入分類'],
+    ['分類', '金額', '佔比'],
+    ...report.value.incomeByCategory.map(c => [c.categoryName, c.amount.toString(), `${c.percentage}%`]),
+    [],
+    ['每日收支'],
+    ['日期', '收入', '支出'],
+    ...report.value.dailyExpenses.map(d => [d.date, d.income.toString(), d.expense.toString()]),
+  ]
+
+  const csv = '\uFEFF' + rows.map(r => r.map(cell => `"${cell}"`).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `FinFree_報表_${report.value.year}${String(report.value.month).padStart(2, '0')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const chartTextColor = computed(() => themeStore.isDark ? '#E5EAF3' : '#606266')
 const gridColor = computed(() => themeStore.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)')
 
@@ -135,6 +171,7 @@ const barOptions = computed(() => ({
         <el-select v-model="selectedMonth" style="width: 90px">
           <el-option v-for="m in monthOptions" :key="m.value" :value="m.value" :label="m.label" />
         </el-select>
+        <el-button :disabled="!report || report.transactionCount === 0" @click="exportCsv">匯出 CSV</el-button>
       </div>
     </div>
 

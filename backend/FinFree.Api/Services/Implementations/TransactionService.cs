@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using FinFree.Api.DTOs.Requests;
 using FinFree.Api.DTOs.Responses;
 using FinFree.Api.Models;
@@ -10,10 +11,12 @@ namespace FinFree.Api.Services.Implementations;
 public class TransactionService : ITransactionService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IMemoryCache _cache;
 
-    public TransactionService(IUnitOfWork unitOfWork)
+    public TransactionService(IUnitOfWork unitOfWork, IMemoryCache cache)
     {
         _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<IEnumerable<TransactionResponse>> GetAllAsync(int userId)
@@ -71,6 +74,7 @@ public class TransactionService : ITransactionService
 
         await _unitOfWork.Transactions.AddAsync(transaction);
         await _unitOfWork.SaveChangesAsync();
+        InvalidateStatisticsCache(userId);
 
         return new TransactionResponse
         {
@@ -128,6 +132,7 @@ public class TransactionService : ITransactionService
 
         _unitOfWork.Transactions.Update(transaction);
         await _unitOfWork.SaveChangesAsync();
+        InvalidateStatisticsCache(userId);
 
         // 重新載入以取得最新的 Category 和 Account
         var updated = await _unitOfWork.Transactions.Query()
@@ -149,6 +154,7 @@ public class TransactionService : ITransactionService
 
         _unitOfWork.Transactions.Delete(transaction);
         await _unitOfWork.SaveChangesAsync();
+        InvalidateStatisticsCache(userId);
 
         return true;
     }
@@ -354,6 +360,23 @@ public class TransactionService : ITransactionService
 
     public async Task<StatisticsResponse> GetStatisticsAsync(int userId, DateTime? startDate = null, DateTime? endDate = null)
     {
+        // 無日期篩選時快取結果 2 分鐘（Dashboard 使用情境）
+        if (!startDate.HasValue && !endDate.HasValue)
+        {
+            var cacheKey = $"stats:{userId}";
+            if (_cache.TryGetValue(cacheKey, out StatisticsResponse? cached) && cached != null)
+                return cached;
+
+            var result = await ComputeStatisticsAsync(userId, null, null);
+            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(2));
+            return result;
+        }
+
+        return await ComputeStatisticsAsync(userId, startDate, endDate);
+    }
+
+    private async Task<StatisticsResponse> ComputeStatisticsAsync(int userId, DateTime? startDate, DateTime? endDate)
+    {
         var query = _unitOfWork.Transactions.Query()
             .Where(t => t.UserId == userId);
 
@@ -379,6 +402,11 @@ public class TransactionService : ITransactionService
             Balance = totalIncome - totalExpense,
             TransactionCount = transactionList.Count
         };
+    }
+
+    public void InvalidateStatisticsCache(int userId)
+    {
+        _cache.Remove($"stats:{userId}");
     }
 
     private static TransactionResponse MapToResponse(Transaction t) => new()
