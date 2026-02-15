@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FinFree.Api.DTOs.Requests;
@@ -9,19 +8,13 @@ namespace FinFree.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class BudgetsController : ControllerBase
+public class BudgetsController : BaseController
 {
     private readonly IBudgetService _budgetService;
 
     public BudgetsController(IBudgetService budgetService)
     {
         _budgetService = budgetService;
-    }
-
-    private int GetUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.Parse(userIdClaim ?? "0");
     }
 
     [HttpGet("{year}/{month}")]
@@ -39,17 +32,9 @@ public class BudgetsController : ControllerBase
             return BadRequest(ModelState);
 
         var userId = GetUserId();
-
-        try
-        {
-            var budget = await _budgetService.CreateAsync(request, userId);
-            return CreatedAtAction(nameof(GetByMonth),
-                new { year = budget.Year, month = budget.Month }, budget);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var budget = await _budgetService.CreateAsync(request, userId);
+        return CreatedAtAction(nameof(GetByMonth),
+            new { year = budget.Year, month = budget.Month }, budget);
     }
 
     [HttpPut("{id}")]

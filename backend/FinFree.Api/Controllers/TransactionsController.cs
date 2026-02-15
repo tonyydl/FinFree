@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FinFree.Api.DTOs.Requests;
@@ -9,19 +8,13 @@ namespace FinFree.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class TransactionsController : ControllerBase
+public class TransactionsController : BaseController
 {
     private readonly ITransactionService _transactionService;
 
     public TransactionsController(ITransactionService transactionService)
     {
         _transactionService = transactionService;
-    }
-
-    private int GetUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.Parse(userIdClaim ?? "0");
     }
 
     [HttpGet]
@@ -123,7 +116,7 @@ public class TransactionsController : ControllerBase
     {
         var userId = GetUserId();
         var csvBytes = await _transactionService.ExportCsvAsync(userId);
-        var fileName = $"FinFree_交易記錄_{DateTime.Now:yyyyMMdd}.csv";
+        var fileName = $"FinFree_交易記錄_{DateTime.UtcNow:yyyyMMdd}.csv";
         return File(csvBytes, "text/csv", fileName);
     }
 }

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FinFree.Api.DTOs.Requests;
@@ -9,19 +8,13 @@ namespace FinFree.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CategoriesController : ControllerBase
+public class CategoriesController : BaseController
 {
     private readonly ICategoryService _categoryService;
 
     public CategoriesController(ICategoryService categoryService)
     {
         _categoryService = categoryService;
-    }
-
-    private int GetUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.Parse(userIdClaim ?? "0");
     }
 
     [HttpGet]
@@ -64,18 +57,11 @@ public class CategoriesController : ControllerBase
     {
         var userId = GetUserId();
 
-        try
-        {
-            var result = await _categoryService.DeleteAsync(id, userId);
+        var result = await _categoryService.DeleteAsync(id, userId);
 
-            if (!result)
-                return NotFound(new { message = "分類不存在或無權限刪除" });
+        if (!result)
+            return NotFound(new { message = "分類不存在或無權限刪除" });
 
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return NoContent();
     }
 }

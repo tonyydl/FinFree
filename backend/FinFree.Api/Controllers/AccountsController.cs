@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FinFree.Api.DTOs.Requests;
@@ -9,19 +8,13 @@ namespace FinFree.Api.Controllers;
 [ApiController]
 [Route("api/accounts")]
 [Authorize]
-public class AccountsController : ControllerBase
+public class AccountsController : BaseController
 {
     private readonly IAccountService _service;
 
     public AccountsController(IAccountService service)
     {
         _service = service;
-    }
-
-    private int GetUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.Parse(userIdClaim ?? "0");
     }
 
     [HttpGet]
@@ -77,35 +70,19 @@ public class AccountsController : ControllerBase
             return BadRequest(ModelState);
 
         var userId = GetUserId();
-
-        try
-        {
-            await _service.TransferAsync(request, userId);
-            return Ok(new { message = "轉帳成功" });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        await _service.TransferAsync(request, userId);
+        return Ok(new { message = "轉帳成功" });
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
         var userId = GetUserId();
+        var result = await _service.DeleteAsync(id, userId);
 
-        try
-        {
-            var result = await _service.DeleteAsync(id, userId);
+        if (!result)
+            return NotFound(new { message = "帳戶不存在" });
 
-            if (!result)
-                return NotFound(new { message = "帳戶不存在" });
-
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return NoContent();
     }
 }

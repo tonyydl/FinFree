@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using FinFree.Api.Data;
 using FinFree.Api.DTOs.Requests;
 using FinFree.Api.DTOs.Responses;
 using FinFree.Api.Models;
@@ -11,25 +10,22 @@ namespace FinFree.Api.Services.Implementations;
 public class AccountService : IAccountService
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly AppDbContext _context;
 
-    public AccountService(IUnitOfWork unitOfWork, AppDbContext context)
+    public AccountService(IUnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _context = context;
     }
 
     public async Task<IEnumerable<AccountResponse>> GetAllAsync(int userId)
     {
-        var accounts = await _context.Accounts
+        var accounts = await _unitOfWork.Accounts.Query()
             .Where(a => a.UserId == userId)
             .OrderBy(a => a.CreatedAt)
             .ToListAsync();
 
         var accountIds = accounts.Select(a => a.Id).ToList();
 
-        // 計算各帳戶餘額（收入 - 支出）
-        var balances = await _context.Transactions
+        var balances = await _unitOfWork.Transactions.Query()
             .Where(t => t.UserId == userId && t.AccountId != null && accountIds.Contains(t.AccountId.Value))
             .GroupBy(t => t.AccountId)
             .Select(g => new
@@ -51,13 +47,13 @@ public class AccountService : IAccountService
 
     public async Task<AccountResponse?> GetByIdAsync(int id, int userId)
     {
-        var account = await _context.Accounts
+        var account = await _unitOfWork.Accounts.Query()
             .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
 
         if (account == null)
             return null;
 
-        var balance = await _context.Transactions
+        var balance = await _unitOfWork.Transactions.Query()
             .Where(t => t.AccountId == id && t.UserId == userId)
             .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
 
@@ -95,7 +91,7 @@ public class AccountService : IAccountService
 
     public async Task<AccountResponse?> UpdateAsync(int id, UpdateAccountRequest request, int userId)
     {
-        var account = await _context.Accounts
+        var account = await _unitOfWork.Accounts.Query()
             .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
 
         if (account == null)
@@ -108,7 +104,7 @@ public class AccountService : IAccountService
         _unitOfWork.Accounts.Update(account);
         await _unitOfWork.SaveChangesAsync();
 
-        var balance = await _context.Transactions
+        var balance = await _unitOfWork.Transactions.Query()
             .Where(t => t.AccountId == id && t.UserId == userId)
             .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
 
@@ -124,16 +120,13 @@ public class AccountService : IAccountService
 
     public async Task<bool> DeleteAsync(int id, int userId)
     {
-        var account = await _context.Accounts
+        var account = await _unitOfWork.Accounts.Query()
             .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
 
         if (account == null)
             return false;
 
-        // 有交易記錄的帳戶不可刪除
-        var hasTransactions = await _context.Transactions
-            .AnyAsync(t => t.AccountId == id);
-
+        var hasTransactions = await _unitOfWork.Transactions.ExistsAsync(t => t.AccountId == id);
         if (hasTransactions)
             throw new InvalidOperationException("此帳戶仍有交易記錄，無法刪除");
 
@@ -148,7 +141,7 @@ public class AccountService : IAccountService
 
     private async Task<Category> GetOrCreateSystemCategoryAsync(string name, TransactionType type)
     {
-        var category = await _context.Categories
+        var category = await _unitOfWork.Categories.Query()
             .FirstOrDefaultAsync(c => c.Name == name && c.UserId == null);
 
         if (category != null)
@@ -161,8 +154,8 @@ public class AccountService : IAccountService
             UserId = null,
         };
 
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync();
+        await _unitOfWork.Categories.AddAsync(category);
+        await _unitOfWork.SaveChangesAsync();
 
         return category;
     }
@@ -172,16 +165,15 @@ public class AccountService : IAccountService
         if (request.FromAccountId == request.ToAccountId)
             throw new InvalidOperationException("來源帳戶與目標帳戶不能相同");
 
-        var fromAccount = await _context.Accounts
+        var fromAccount = await _unitOfWork.Accounts.Query()
             .FirstOrDefaultAsync(a => a.Id == request.FromAccountId && a.UserId == userId);
-        var toAccount = await _context.Accounts
+        var toAccount = await _unitOfWork.Accounts.Query()
             .FirstOrDefaultAsync(a => a.Id == request.ToAccountId && a.UserId == userId);
 
         if (fromAccount == null || toAccount == null)
             throw new InvalidOperationException("帳戶不存在");
 
-        // 檢查來源帳戶餘額是否足夠
-        var fromBalance = await _context.Transactions
+        var fromBalance = await _unitOfWork.Transactions.Query()
             .Where(t => t.AccountId == request.FromAccountId && t.UserId == userId)
             .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
 
@@ -197,7 +189,6 @@ public class AccountService : IAccountService
 
         var description = request.Description ?? $"從「{fromAccount.Name}」轉至「{toAccount.Name}」";
 
-        // 來源帳戶扣款（支出）
         var outTransaction = new Transaction
         {
             UserId = userId,
@@ -211,7 +202,6 @@ public class AccountService : IAccountService
             Category = outCategory,
         };
 
-        // 目標帳戶入帳（收入）
         var inTransaction = new Transaction
         {
             UserId = userId,

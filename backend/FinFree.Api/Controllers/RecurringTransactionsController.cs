@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FinFree.Api.DTOs.Requests;
@@ -9,19 +8,13 @@ namespace FinFree.Api.Controllers;
 [ApiController]
 [Route("api/recurring-transactions")]
 [Authorize]
-public class RecurringTransactionsController : ControllerBase
+public class RecurringTransactionsController : BaseController
 {
     private readonly IRecurringTransactionService _service;
 
     public RecurringTransactionsController(IRecurringTransactionService service)
     {
         _service = service;
-    }
-
-    private int GetUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return int.Parse(userIdClaim ?? "0");
     }
 
     [HttpGet]
@@ -52,15 +45,8 @@ public class RecurringTransactionsController : ControllerBase
 
         var userId = GetUserId();
 
-        try
-        {
-            var item = await _service.CreateAsync(request, userId);
-            return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var item = await _service.CreateAsync(request, userId);
+        return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
     }
 
     [HttpPut("{id}")]
