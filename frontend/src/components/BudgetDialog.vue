@@ -57,8 +57,6 @@ async function handleSubmit() {
     success = await budgetStore.updateBudget(
       props.editingBudget!.id,
       { amount: form.value.amount },
-      props.year,
-      props.month,
     )
   } else {
     success = await budgetStore.createBudget({

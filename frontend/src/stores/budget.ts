@@ -42,7 +42,7 @@ export const useBudgetStore = defineStore('budget', () => {
     }
   }
 
-  async function updateBudget(id: number, request: UpdateBudgetRequest, year: number, month: number): Promise<boolean> {
+  async function updateBudget(id: number, request: UpdateBudgetRequest): Promise<boolean> {
     loading.value = true
     error.value = null
     try {
@@ -59,7 +59,7 @@ export const useBudgetStore = defineStore('budget', () => {
     }
   }
 
-  async function deleteBudget(id: number, year: number, month: number): Promise<boolean> {
+  async function deleteBudget(id: number): Promise<boolean> {
     loading.value = true
     error.value = null
     try {

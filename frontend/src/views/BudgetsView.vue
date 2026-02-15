@@ -71,7 +71,7 @@ async function handleDelete(budget: BudgetResponse) {
       '確認刪除',
       { confirmButtonText: '刪除', cancelButtonText: '取消', type: 'warning' },
     )
-    const success = await budgetStore.deleteBudget(budget.id, currentYear.value, currentMonth.value)
+    const success = await budgetStore.deleteBudget(budget.id)
     if (success) {
       ElMessage.success('預算已刪除')
     }

@@ -108,12 +108,20 @@ docker compose down
 docker compose up -d postgres
 ```
 
+開發環境使用獨立的資料庫 `finfree_dev`，與正式環境 `finfree` 完全分離。首次開發前需手動建立：
+
+```bash
+docker exec finfree-postgres psql -U postgres -c "CREATE DATABASE finfree_dev;"
+```
+
 ### 2. 啟動後端
 
 ```bash
 cd backend/FinFree.Api
 dotnet run
 ```
+
+`dotnet run` 預設使用 `ASPNETCORE_ENVIRONMENT=Development`，會自動載入 `appsettings.Development.json`，連線至 `finfree_dev` 資料庫。
 
 API 運行於 `http://localhost:5016`，Swagger UI：`http://localhost:5016/swagger`
 
