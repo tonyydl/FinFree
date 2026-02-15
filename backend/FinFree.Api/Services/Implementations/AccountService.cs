@@ -53,18 +53,21 @@ public class AccountService : IAccountService
         if (account == null)
             return null;
 
-        var balance = await _unitOfWork.Transactions.Query()
-            .Where(t => t.AccountId == id && t.UserId == userId)
-            .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
-
         return new AccountResponse
         {
             Id = account.Id,
             Name = account.Name,
             AccountType = account.AccountType,
-            Balance = balance,
+            Balance = await GetBalanceAsync(id, userId),
             CreatedAt = account.CreatedAt,
         };
+    }
+
+    private async Task<decimal> GetBalanceAsync(int accountId, int userId)
+    {
+        return await _unitOfWork.Transactions.Query()
+            .Where(t => t.AccountId == accountId && t.UserId == userId)
+            .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
     }
 
     public async Task<AccountResponse> CreateAsync(CreateAccountRequest request, int userId)
@@ -104,16 +107,12 @@ public class AccountService : IAccountService
         _unitOfWork.Accounts.Update(account);
         await _unitOfWork.SaveChangesAsync();
 
-        var balance = await _unitOfWork.Transactions.Query()
-            .Where(t => t.AccountId == id && t.UserId == userId)
-            .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
-
         return new AccountResponse
         {
             Id = account.Id,
             Name = account.Name,
             AccountType = account.AccountType,
-            Balance = balance,
+            Balance = await GetBalanceAsync(id, userId),
             CreatedAt = account.CreatedAt,
         };
     }

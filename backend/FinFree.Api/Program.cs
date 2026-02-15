@@ -13,7 +13,19 @@ using FinFree.Api.Services.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+            var message = string.Join("; ", errors);
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new { message });
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Swagger Configuration with JWT Support

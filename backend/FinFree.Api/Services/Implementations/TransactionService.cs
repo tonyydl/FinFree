@@ -352,12 +352,17 @@ public class TransactionService : ITransactionService
         };
     }
 
-    public async Task<StatisticsResponse> GetStatisticsAsync(int userId)
+    public async Task<StatisticsResponse> GetStatisticsAsync(int userId, DateTime? startDate = null, DateTime? endDate = null)
     {
-        var transactions = await _unitOfWork.Transactions
-            .FindAsync(t => t.UserId == userId);
+        var query = _unitOfWork.Transactions.Query()
+            .Where(t => t.UserId == userId);
 
-        var transactionList = transactions.ToList();
+        if (startDate.HasValue)
+            query = query.Where(t => t.Date >= startDate.Value);
+        if (endDate.HasValue)
+            query = query.Where(t => t.Date < endDate.Value);
+
+        var transactionList = await query.ToListAsync();
 
         var totalIncome = transactionList
             .Where(t => t.Type == TransactionType.Income)

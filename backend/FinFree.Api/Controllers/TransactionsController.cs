@@ -88,10 +88,10 @@ public class TransactionsController : BaseController
     }
 
     [HttpGet("statistics")]
-    public async Task<IActionResult> GetStatistics()
+    public async Task<IActionResult> GetStatistics([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
         var userId = GetUserId();
-        var statistics = await _transactionService.GetStatisticsAsync(userId);
+        var statistics = await _transactionService.GetStatisticsAsync(userId, startDate, endDate);
         return Ok(statistics);
     }
 

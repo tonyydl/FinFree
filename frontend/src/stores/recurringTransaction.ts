@@ -30,8 +30,8 @@ export const useRecurringTransactionStore = defineStore('recurringTransaction', 
     loading.value = true
     error.value = null
     try {
-      await api.post<RecurringTransactionResponse>('/recurring-transactions', request)
-      await fetchAll()
+      const response = await api.post<RecurringTransactionResponse>('/recurring-transactions', request)
+      items.value.push(response.data)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -46,8 +46,9 @@ export const useRecurringTransactionStore = defineStore('recurringTransaction', 
     loading.value = true
     error.value = null
     try {
-      await api.put<RecurringTransactionResponse>(`/recurring-transactions/${id}`, request)
-      await fetchAll()
+      const response = await api.put<RecurringTransactionResponse>(`/recurring-transactions/${id}`, request)
+      const index = items.value.findIndex(i => i.id === id)
+      if (index !== -1) items.value[index] = response.data
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -63,7 +64,7 @@ export const useRecurringTransactionStore = defineStore('recurringTransaction', 
     error.value = null
     try {
       await api.delete(`/recurring-transactions/${id}`)
-      await fetchAll()
+      items.value = items.value.filter(i => i.id !== id)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }

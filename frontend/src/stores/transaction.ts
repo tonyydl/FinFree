@@ -30,8 +30,8 @@ export const useTransactionStore = defineStore('transaction', () => {
     loading.value = true
     error.value = null
     try {
-      await api.post<TransactionResponse>('/transactions', request)
-      await fetchTransactions()
+      const response = await api.post<TransactionResponse>('/transactions', request)
+      transactions.value.unshift(response.data)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -46,8 +46,9 @@ export const useTransactionStore = defineStore('transaction', () => {
     loading.value = true
     error.value = null
     try {
-      await api.put<TransactionResponse>(`/transactions/${id}`, request)
-      await fetchTransactions()
+      const response = await api.put<TransactionResponse>(`/transactions/${id}`, request)
+      const index = transactions.value.findIndex(t => t.id === id)
+      if (index !== -1) transactions.value[index] = response.data
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -63,7 +64,7 @@ export const useTransactionStore = defineStore('transaction', () => {
     error.value = null
     try {
       await api.delete(`/transactions/${id}`)
-      await fetchTransactions()
+      transactions.value = transactions.value.filter(t => t.id !== id)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }

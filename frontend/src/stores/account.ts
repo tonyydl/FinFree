@@ -31,8 +31,8 @@ export const useAccountStore = defineStore('account', () => {
     loading.value = true
     error.value = null
     try {
-      await api.post<AccountResponse>('/accounts', request)
-      await fetchAccounts()
+      const response = await api.post<AccountResponse>('/accounts', request)
+      accounts.value.push(response.data)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -47,8 +47,9 @@ export const useAccountStore = defineStore('account', () => {
     loading.value = true
     error.value = null
     try {
-      await api.put<AccountResponse>(`/accounts/${id}`, request)
-      await fetchAccounts()
+      const response = await api.put<AccountResponse>(`/accounts/${id}`, request)
+      const index = accounts.value.findIndex(a => a.id === id)
+      if (index !== -1) accounts.value[index] = response.data
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -64,7 +65,7 @@ export const useAccountStore = defineStore('account', () => {
     error.value = null
     try {
       await api.delete(`/accounts/${id}`)
-      await fetchAccounts()
+      accounts.value = accounts.value.filter(a => a.id !== id)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }

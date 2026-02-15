@@ -30,8 +30,8 @@ export const useBudgetStore = defineStore('budget', () => {
     loading.value = true
     error.value = null
     try {
-      await api.post<BudgetResponse>('/budgets', request)
-      await fetchBudgets(request.year, request.month)
+      const response = await api.post<BudgetResponse>('/budgets', request)
+      budgets.value.push(response.data)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -46,8 +46,9 @@ export const useBudgetStore = defineStore('budget', () => {
     loading.value = true
     error.value = null
     try {
-      await api.put<BudgetResponse>(`/budgets/${id}`, request)
-      await fetchBudgets(year, month)
+      const response = await api.put<BudgetResponse>(`/budgets/${id}`, request)
+      const index = budgets.value.findIndex(b => b.id === id)
+      if (index !== -1) budgets.value[index] = response.data
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -63,7 +64,7 @@ export const useBudgetStore = defineStore('budget', () => {
     error.value = null
     try {
       await api.delete(`/budgets/${id}`)
-      await fetchBudgets(year, month)
+      budgets.value = budgets.value.filter(b => b.id !== id)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }

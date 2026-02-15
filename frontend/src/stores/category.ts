@@ -30,8 +30,8 @@ export const useCategoryStore = defineStore('category', () => {
     loading.value = true
     error.value = null
     try {
-      await api.post<CategoryResponse>('/categories', request)
-      await fetchCategories()
+      const response = await api.post<CategoryResponse>('/categories', request)
+      categories.value.push(response.data)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -46,8 +46,9 @@ export const useCategoryStore = defineStore('category', () => {
     loading.value = true
     error.value = null
     try {
-      await api.put<CategoryResponse>(`/categories/${id}`, request)
-      await fetchCategories()
+      const response = await api.put<CategoryResponse>(`/categories/${id}`, request)
+      const index = categories.value.findIndex(c => c.id === id)
+      if (index !== -1) categories.value[index] = response.data
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
@@ -63,7 +64,7 @@ export const useCategoryStore = defineStore('category', () => {
     error.value = null
     try {
       await api.delete(`/categories/${id}`)
-      await fetchCategories()
+      categories.value = categories.value.filter(c => c.id !== id)
       return true
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
