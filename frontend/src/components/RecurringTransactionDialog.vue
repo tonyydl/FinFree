@@ -15,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
+  'saved': []
 }>()
 
 const store = useRecurringTransactionStore()
@@ -122,6 +123,7 @@ async function handleSubmit() {
     })
     if (success) {
       ElMessage.success('定期交易已更新')
+      emit('saved')
       handleClose()
     }
   } else {
@@ -137,6 +139,7 @@ async function handleSubmit() {
     })
     if (success) {
       ElMessage.success('定期交易已新增')
+      emit('saved')
       handleClose()
     }
   }

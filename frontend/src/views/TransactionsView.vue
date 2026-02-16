@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useTransactionStore } from '@/stores/transaction'
 import { useAccountStore } from '@/stores/account'
 import { TransactionType } from '@/types'
@@ -25,66 +25,37 @@ const filterEndDate = ref<string | null>(null)
 const currentPage = ref(1)
 const pageSize = ref(10)
 
+function fetchData() {
+  transactionStore.fetchPaged({
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    keyword: searchKeyword.value || undefined,
+    type: filterType.value !== '' ? filterType.value : undefined,
+    accountId: filterAccountId.value !== '' ? filterAccountId.value : undefined,
+    startDate: filterStartDate.value || undefined,
+    endDate: filterEndDate.value || undefined,
+  })
+}
+
 onMounted(() => {
-  transactionStore.fetchTransactions()
+  fetchData()
   accountStore.fetchAccounts()
 })
 
-// 篩選後的資料
-const filteredTransactions = computed(() => {
-  let result = transactionStore.transactions
+watch([currentPage, pageSize], fetchData)
 
-  // 關鍵字搜尋（說明、分類名稱）
-  if (searchKeyword.value.trim()) {
-    const keyword = searchKeyword.value.trim().toLowerCase()
-    result = result.filter(t =>
-      (t.description && t.description.toLowerCase().includes(keyword)) ||
-      t.categoryName.toLowerCase().includes(keyword),
-    )
-  }
-
-  // 類型篩選
-  if (filterType.value !== '') {
-    result = result.filter(t => t.type === filterType.value)
-  }
-
-  // 帳戶篩選
-  if (filterAccountId.value !== '') {
-    result = result.filter(t => t.accountId === filterAccountId.value)
-  }
-
-  // 日期範圍篩選
-  const start = filterStartDate.value
-  const end = filterEndDate.value
-  if (start || end) {
-    result = result.filter(t => {
-      const d = new Date(t.date)
-      if (start) {
-        const startDate = new Date(start)
-        if (d < startDate) return false
-      }
-      if (end) {
-        const endDate = new Date(end)
-        endDate.setHours(23, 59, 59, 999)
-        if (d > endDate) return false
-      }
-      return true
-    })
-  }
-
-  return result
-})
-
-// 分頁後的資料
-const paginatedTransactions = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredTransactions.value.slice(start, start + pageSize.value)
-})
-
-const totalCount = computed(() => filteredTransactions.value.length)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+function handleSearchInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    fetchData()
+  }, 400)
+}
 
 function handleFilterChange() {
   currentPage.value = 1
+  fetchData()
 }
 
 function handleStartDateChange() {
@@ -112,6 +83,7 @@ function clearFilters() {
   filterStartDate.value = null
   filterEndDate.value = null
   currentPage.value = 1
+  fetchData()
 }
 
 function formatDate(dateStr: string): string {
@@ -174,7 +146,7 @@ async function handleImportSubmit() {
     const { imported, failed, errors } = res.data
     if (imported > 0) {
       ElMessage.success(`匯入成功 ${imported} 筆${failed > 0 ? `，失敗 ${failed} 筆` : ''}`)
-      transactionStore.fetchTransactions()
+      fetchData()
       importVisible.value = false
     }
     if (failed > 0 && imported === 0) {
@@ -223,6 +195,7 @@ async function handleDelete(row: TransactionResponse) {
     const success = await transactionStore.deleteTransaction(row.id)
     if (success) {
       ElMessage.success('交易記錄已刪除')
+      fetchData()
     }
   } catch {
     // 使用者取消刪除，不需處理
@@ -249,7 +222,7 @@ async function handleDelete(row: TransactionResponse) {
           placeholder="搜尋說明或分類"
           clearable
           class="filter-search"
-          @input="handleFilterChange"
+          @input="handleSearchInput"
         />
         <div class="filter-item">
           <span class="filter-label">類型：</span>
@@ -311,7 +284,7 @@ async function handleDelete(row: TransactionResponse) {
 
     <el-table
       v-loading="transactionStore.loading"
-      :data="paginatedTransactions"
+      :data="transactionStore.pagedItems"
       stripe
       style="width: 100%"
     >
@@ -362,12 +335,12 @@ async function handleDelete(row: TransactionResponse) {
     </el-table>
 
     <!-- 分頁 -->
-    <div v-if="totalCount > 0" class="pagination-wrapper">
+    <div v-if="transactionStore.total > 0" class="pagination-wrapper">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :page-sizes="[10, 20, 50]"
-        :total="totalCount"
+        :total="transactionStore.total"
         :small="true"
         layout="total, sizes, prev, pager, next"
       />
@@ -376,6 +349,7 @@ async function handleDelete(row: TransactionResponse) {
     <TransactionDialog
       v-model:visible="dialogVisible"
       :editing-transaction="editingTransaction"
+      @saved="fetchData"
     />
 
     <!-- 匯入對話框 -->

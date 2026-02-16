@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRecurringTransactionStore } from '@/stores/recurringTransaction'
 import { TransactionType, RecurrenceFrequency } from '@/types'
 import type { RecurringTransactionResponse } from '@/types'
@@ -19,33 +19,24 @@ const filterActive = ref<boolean | ''>('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 
+function fetchData() {
+  store.fetchPaged({
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    frequency: filterFrequency.value !== '' ? filterFrequency.value : undefined,
+    isActive: filterActive.value !== '' ? filterActive.value : undefined,
+  })
+}
+
 onMounted(() => {
-  store.fetchAll()
+  fetchData()
 })
 
-const filteredItems = computed(() => {
-  let result = store.items
-
-  if (filterFrequency.value !== '') {
-    result = result.filter(r => r.frequency === filterFrequency.value)
-  }
-
-  if (filterActive.value !== '') {
-    result = result.filter(r => r.isActive === filterActive.value)
-  }
-
-  return result
-})
-
-const paginatedItems = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredItems.value.slice(start, start + pageSize.value)
-})
-
-const totalCount = computed(() => filteredItems.value.length)
+watch([currentPage, pageSize], fetchData)
 
 function handleFilterChange() {
   currentPage.value = 1
+  fetchData()
 }
 
 function formatDate(dateStr: string): string {
@@ -77,6 +68,7 @@ async function handleToggleActive(row: RecurringTransactionResponse) {
   const success = await store.update(row.id, { isActive: newActive })
   if (success) {
     ElMessage.success(newActive ? '已啟用' : '已停用')
+    fetchData()
   }
 }
 
@@ -94,6 +86,7 @@ async function handleDelete(row: RecurringTransactionResponse) {
     const success = await store.remove(row.id)
     if (success) {
       ElMessage.success('定期交易已刪除')
+      fetchData()
     }
   } catch {
     // 使用者取消
@@ -144,7 +137,7 @@ async function handleDelete(row: RecurringTransactionResponse) {
 
     <el-table
       v-loading="store.loading"
-      :data="paginatedItems"
+      :data="store.pagedItems"
       stripe
       style="width: 100%"
     >
@@ -218,12 +211,12 @@ async function handleDelete(row: RecurringTransactionResponse) {
     </el-table>
 
     <!-- 分頁 -->
-    <div v-if="totalCount > 0" class="pagination-wrapper">
+    <div v-if="store.total > 0" class="pagination-wrapper">
       <el-pagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
         :page-sizes="[10, 20, 50]"
-        :total="totalCount"
+        :total="store.total"
         :small="true"
         layout="total, sizes, prev, pager, next"
       />
@@ -232,6 +225,7 @@ async function handleDelete(row: RecurringTransactionResponse) {
     <RecurringTransactionDialog
       v-model:visible="dialogVisible"
       :editing-item="editingItem"
+      @saved="fetchData"
     />
   </div>
 </template>

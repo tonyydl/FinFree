@@ -6,6 +6,7 @@ namespace FinFree.Api.Services.Interfaces;
 public interface ITransactionService
 {
     Task<IEnumerable<TransactionResponse>> GetAllAsync(int userId);
+    Task<PagedResult<TransactionResponse>> GetPagedAsync(TransactionQueryParams query, int userId);
     Task<TransactionResponse?> GetByIdAsync(int id, int userId);
     Task<TransactionResponse> CreateAsync(CreateTransactionRequest request, int userId);
     Task<TransactionResponse?> UpdateAsync(int id, UpdateTransactionRequest request, int userId);

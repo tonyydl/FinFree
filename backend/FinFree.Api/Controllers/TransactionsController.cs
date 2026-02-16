@@ -18,11 +18,19 @@ public class TransactionsController : BaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] TransactionQueryParams query)
     {
         var userId = GetUserId();
-        var transactions = await _transactionService.GetAllAsync(userId);
-        return Ok(transactions);
+
+        // 無分頁參數時回傳全部（向後相容，供 Dashboard 使用）
+        if (!query.Page.HasValue && !query.PageSize.HasValue)
+        {
+            var transactions = await _transactionService.GetAllAsync(userId);
+            return Ok(transactions);
+        }
+
+        var result = await _transactionService.GetPagedAsync(query, userId);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]

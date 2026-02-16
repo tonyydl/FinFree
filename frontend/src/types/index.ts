@@ -160,6 +160,30 @@ export interface RecurringTransactionResponse {
   createdAt: string
 }
 
+// ===== Pagination =====
+
+export interface PagedResult<T> {
+  items: T[]
+  total: number
+}
+
+export interface TransactionQueryParams {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  type?: TransactionType
+  accountId?: number
+  startDate?: string | null
+  endDate?: string | null
+}
+
+export interface RecurringTransactionQueryParams {
+  page?: number
+  pageSize?: number
+  frequency?: RecurrenceFrequency
+  isActive?: boolean
+}
+
 // ===== Accounts =====
 
 export enum AccountType {

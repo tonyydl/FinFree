@@ -18,11 +18,19 @@ public class RecurringTransactionsController : BaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] RecurringTransactionQueryParams query)
     {
         var userId = GetUserId();
-        var items = await _service.GetAllAsync(userId);
-        return Ok(items);
+
+        // 無分頁參數時回傳全部（向後相容）
+        if (!query.Page.HasValue && !query.PageSize.HasValue)
+        {
+            var items = await _service.GetAllAsync(userId);
+            return Ok(items);
+        }
+
+        var result = await _service.GetPagedAsync(query, userId);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]

@@ -5,10 +5,14 @@ import type {
   RecurringTransactionResponse,
   CreateRecurringTransactionRequest,
   UpdateRecurringTransactionRequest,
+  PagedResult,
+  RecurringTransactionQueryParams,
 } from '@/types'
 
 export const useRecurringTransactionStore = defineStore('recurringTransaction', () => {
   const items = ref<RecurringTransactionResponse[]>([])
+  const pagedItems = ref<RecurringTransactionResponse[]>([])
+  const total = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -18,6 +22,28 @@ export const useRecurringTransactionStore = defineStore('recurringTransaction', 
     try {
       const response = await api.get<RecurringTransactionResponse[]>('/recurring-transactions')
       items.value = response.data
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } }
+      error.value = axiosErr.response?.data?.message ?? '取得定期交易失敗'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchPaged(params: RecurringTransactionQueryParams): Promise<void> {
+    loading.value = true
+    error.value = null
+    try {
+      const query: Record<string, string | number | boolean> = {
+        page: params.page ?? 1,
+        pageSize: params.pageSize ?? 10,
+      }
+      if (params.frequency !== undefined && params.frequency !== null) query.frequency = params.frequency
+      if (params.isActive !== undefined && params.isActive !== null) query.isActive = params.isActive
+
+      const response = await api.get<PagedResult<RecurringTransactionResponse>>('/recurring-transactions', { params: query })
+      pagedItems.value = response.data.items
+      total.value = response.data.total
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } }
       error.value = axiosErr.response?.data?.message ?? '取得定期交易失敗'
@@ -86,9 +112,12 @@ export const useRecurringTransactionStore = defineStore('recurringTransaction', 
 
   return {
     items,
+    pagedItems,
+    total,
     loading,
     error,
     fetchAll,
+    fetchPaged,
     create,
     update,
     remove,

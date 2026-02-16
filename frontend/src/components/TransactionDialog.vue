@@ -15,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
+  'saved': []
 }>()
 
 const transactionStore = useTransactionStore()
@@ -109,6 +110,7 @@ async function handleSubmit() {
     })
     if (success) {
       ElMessage.success('交易記錄已更新')
+      emit('saved')
       handleClose()
     }
   } else {
@@ -122,6 +124,7 @@ async function handleSubmit() {
     })
     if (success) {
       ElMessage.success('交易記錄已新增')
+      emit('saved')
       handleClose()
     }
   }

@@ -358,6 +358,55 @@ public class TransactionService : ITransactionService
         };
     }
 
+    public async Task<PagedResult<TransactionResponse>> GetPagedAsync(TransactionQueryParams query, int userId)
+    {
+        var q = _unitOfWork.Transactions.Query()
+            .Include(t => t.Category)
+            .Include(t => t.Account)
+            .Where(t => t.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(query.Keyword))
+        {
+            var kw = query.Keyword.Trim().ToLower();
+            q = q.Where(t =>
+                (t.Description != null && t.Description.ToLower().Contains(kw)) ||
+                t.Category.Name.ToLower().Contains(kw));
+        }
+
+        if (query.Type.HasValue)
+            q = q.Where(t => t.Type == query.Type.Value);
+
+        if (query.AccountId.HasValue)
+            q = q.Where(t => t.AccountId == query.AccountId.Value);
+
+        if (query.StartDate.HasValue)
+            q = q.Where(t => t.Date >= query.StartDate.Value);
+
+        if (query.EndDate.HasValue)
+        {
+            var endOfDay = query.EndDate.Value.Date.AddDays(1);
+            q = q.Where(t => t.Date < endOfDay);
+        }
+
+        var total = await q.CountAsync();
+
+        var page = query.Page ?? 1;
+        var pageSize = Math.Clamp(query.PageSize ?? 10, 1, 100);
+
+        var items = await q
+            .OrderByDescending(t => t.Date)
+            .ThenByDescending(t => t.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<TransactionResponse>
+        {
+            Items = items.Select(MapToResponse),
+            Total = total
+        };
+    }
+
     public async Task<StatisticsResponse> GetStatisticsAsync(int userId, DateTime? startDate = null, DateTime? endDate = null)
     {
         // 無日期篩選時快取結果 2 分鐘（Dashboard 使用情境）

@@ -31,6 +31,37 @@ public class RecurringTransactionService : IRecurringTransactionService
         return items.Select(MapToResponse);
     }
 
+    public async Task<PagedResult<RecurringTransactionResponse>> GetPagedAsync(RecurringTransactionQueryParams query, int userId)
+    {
+        var q = _context.RecurringTransactions
+            .Include(r => r.Category)
+            .Include(r => r.Account)
+            .Where(r => r.UserId == userId);
+
+        if (query.Frequency.HasValue)
+            q = q.Where(r => r.Frequency == query.Frequency.Value);
+
+        if (query.IsActive.HasValue)
+            q = q.Where(r => r.IsActive == query.IsActive.Value);
+
+        var total = await q.CountAsync();
+
+        var page = query.Page ?? 1;
+        var pageSize = Math.Clamp(query.PageSize ?? 10, 1, 100);
+
+        var items = await q
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<RecurringTransactionResponse>
+        {
+            Items = items.Select(MapToResponse),
+            Total = total
+        };
+    }
+
     public async Task<RecurringTransactionResponse?> GetByIdAsync(int id, int userId)
     {
         var item = await _context.RecurringTransactions
