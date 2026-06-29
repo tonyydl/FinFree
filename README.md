@@ -99,14 +99,16 @@ docker compose down
 ### 前置需求
 
 - .NET 9.0 SDK
-- Docker Desktop（用於 PostgreSQL）
+- Docker Desktop（用於 PostgreSQL / Redis）
 - Node.js 22+
 
-### 1. 啟動資料庫
+### 1. 啟動本地開發基礎設施
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres redis
 ```
+
+本地開發建議只用 Docker 啟動 PostgreSQL 與 Redis，後端用 `dotnet run`、前端用 Vite dev server 啟動，方便熱更新與除錯。
 
 開發環境使用獨立的資料庫 `finfree_dev`，與正式環境 `finfree` 完全分離。首次開發前需手動建立：
 

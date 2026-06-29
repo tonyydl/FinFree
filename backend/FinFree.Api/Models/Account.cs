@@ -15,6 +15,7 @@ public class Account
     public int UserId { get; set; }
     public required string Name { get; set; }
     public AccountType AccountType { get; set; } = AccountType.Bank;
+    public decimal InitialBalance { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

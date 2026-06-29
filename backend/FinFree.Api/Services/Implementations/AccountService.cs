@@ -40,7 +40,8 @@ public class AccountService : IAccountService
             Id = a.Id,
             Name = a.Name,
             AccountType = a.AccountType,
-            Balance = balances.GetValueOrDefault(a.Id, 0),
+            InitialBalance = a.InitialBalance,
+            Balance = a.InitialBalance + balances.GetValueOrDefault(a.Id, 0),
             CreatedAt = a.CreatedAt,
         });
     }
@@ -58,6 +59,7 @@ public class AccountService : IAccountService
             Id = account.Id,
             Name = account.Name,
             AccountType = account.AccountType,
+            InitialBalance = account.InitialBalance,
             Balance = await GetBalanceAsync(id, userId),
             CreatedAt = account.CreatedAt,
         };
@@ -65,9 +67,17 @@ public class AccountService : IAccountService
 
     private async Task<decimal> GetBalanceAsync(int accountId, int userId)
     {
-        return await _unitOfWork.Transactions.Query()
+        var account = await _unitOfWork.Accounts.Query()
+            .FirstOrDefaultAsync(a => a.Id == accountId && a.UserId == userId);
+
+        if (account == null)
+            return 0;
+
+        var transactionBalance = await _unitOfWork.Transactions.Query()
             .Where(t => t.AccountId == accountId && t.UserId == userId)
             .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
+
+        return account.InitialBalance + transactionBalance;
     }
 
     public async Task<AccountResponse> CreateAsync(CreateAccountRequest request, int userId)
@@ -77,6 +87,7 @@ public class AccountService : IAccountService
             UserId = userId,
             Name = request.Name,
             AccountType = request.AccountType,
+            InitialBalance = request.InitialBalance,
         };
 
         await _unitOfWork.Accounts.AddAsync(account);
@@ -87,7 +98,8 @@ public class AccountService : IAccountService
             Id = account.Id,
             Name = account.Name,
             AccountType = account.AccountType,
-            Balance = 0,
+            InitialBalance = account.InitialBalance,
+            Balance = account.InitialBalance,
             CreatedAt = account.CreatedAt,
         };
     }
@@ -102,6 +114,7 @@ public class AccountService : IAccountService
 
         account.Name = request.Name;
         account.AccountType = request.AccountType;
+        account.InitialBalance = request.InitialBalance;
         account.UpdatedAt = DateTime.UtcNow;
 
         _unitOfWork.Accounts.Update(account);
@@ -112,6 +125,7 @@ public class AccountService : IAccountService
             Id = account.Id,
             Name = account.Name,
             AccountType = account.AccountType,
+            InitialBalance = account.InitialBalance,
             Balance = await GetBalanceAsync(id, userId),
             CreatedAt = account.CreatedAt,
         };
@@ -172,9 +186,7 @@ public class AccountService : IAccountService
         if (fromAccount == null || toAccount == null)
             throw new InvalidOperationException("帳戶不存在");
 
-        var fromBalance = await _unitOfWork.Transactions.Query()
-            .Where(t => t.AccountId == request.FromAccountId && t.UserId == userId)
-            .SumAsync(t => t.Type == TransactionType.Income ? t.Amount : -t.Amount);
+        var fromBalance = await GetBalanceAsync(request.FromAccountId, userId);
 
         if (fromBalance < request.Amount)
             throw new InvalidOperationException("來源帳戶餘額不足");

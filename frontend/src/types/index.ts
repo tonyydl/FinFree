@@ -205,17 +205,20 @@ export const AccountTypeLabels: Record<AccountType, string> = {
 export interface CreateAccountRequest {
   name: string
   accountType: AccountType
+  initialBalance: number
 }
 
 export interface UpdateAccountRequest {
   name: string
   accountType: AccountType
+  initialBalance: number
 }
 
 export interface AccountResponse {
   id: number
   name: string
   accountType: AccountType
+  initialBalance: number
   balance: number
   createdAt: string
 }

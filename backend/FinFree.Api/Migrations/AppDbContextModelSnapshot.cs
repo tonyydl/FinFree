@@ -36,6 +36,10 @@ namespace FinFree.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal>("InitialBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)

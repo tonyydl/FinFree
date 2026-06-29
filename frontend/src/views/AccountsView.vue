@@ -15,12 +15,17 @@ const formRef = ref<FormInstance>()
 const form = ref({
   name: '',
   accountType: AccountType.Bank,
+  initialBalance: 0,
 })
 
 const rules: FormRules = {
   name: [
     { required: true, message: '請輸入帳戶名稱', trigger: 'blur' },
     { min: 1, max: 50, message: '帳戶名稱長度須為 1-50 字', trigger: 'blur' },
+  ],
+  initialBalance: [
+    { required: true, message: '請輸入初始餘額', trigger: 'blur' },
+    { type: 'number', message: '初始餘額必須為數字', trigger: 'blur' },
   ],
 }
 
@@ -58,6 +63,7 @@ function handleAdd() {
   editingAccount.value = null
   form.value.name = ''
   form.value.accountType = AccountType.Bank
+  form.value.initialBalance = 0
   dialogVisible.value = true
 }
 
@@ -65,6 +71,7 @@ function handleEdit(row: AccountResponse) {
   editingAccount.value = row
   form.value.name = row.name
   form.value.accountType = row.accountType
+  form.value.initialBalance = row.initialBalance
   dialogVisible.value = true
 }
 
@@ -78,13 +85,21 @@ async function handleSubmit() {
   if (!valid) return
 
   if (editingAccount.value) {
-    const success = await store.updateAccount(editingAccount.value.id, { name: form.value.name, accountType: form.value.accountType })
+    const success = await store.updateAccount(editingAccount.value.id, {
+      name: form.value.name,
+      accountType: form.value.accountType,
+      initialBalance: form.value.initialBalance,
+    })
     if (success) {
       ElMessage.success('帳戶已更新')
       handleClose()
     }
   } else {
-    const success = await store.createAccount({ name: form.value.name, accountType: form.value.accountType })
+    const success = await store.createAccount({
+      name: form.value.name,
+      accountType: form.value.accountType,
+      initialBalance: form.value.initialBalance,
+    })
     if (success) {
       ElMessage.success('帳戶已新增')
       handleClose()
@@ -250,6 +265,15 @@ const totalBalance = () => store.accounts.reduce((sum, a) => sum + a.balance, 0)
               :value="Number(value)"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="初始餘額" prop="initialBalance">
+          <el-input-number
+            v-model="form.initialBalance"
+            :precision="2"
+            :controls="false"
+            placeholder="例如：10000"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
 

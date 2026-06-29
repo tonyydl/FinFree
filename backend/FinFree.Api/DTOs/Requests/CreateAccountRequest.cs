@@ -10,4 +10,7 @@ public class CreateAccountRequest
     public required string Name { get; set; }
 
     public AccountType AccountType { get; set; } = AccountType.Bank;
+
+    [Range(typeof(decimal), "-9999999999999999", "9999999999999999", ErrorMessage = "初始餘額超出允許範圍")]
+    public decimal InitialBalance { get; set; }
 }
