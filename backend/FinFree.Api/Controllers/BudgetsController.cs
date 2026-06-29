@@ -37,6 +37,17 @@ public class BudgetsController : BaseController
             new { year = budget.Year, month = budget.Month }, budget);
     }
 
+    [HttpPost("{year}/{month}/copy-previous")]
+    public async Task<IActionResult> CopyPreviousMonth(int year, int month)
+    {
+        if (year < 2020 || year > 2100 || month < 1 || month > 12)
+            return BadRequest(new { message = "無效的年份或月份" });
+
+        var userId = GetUserId();
+        var budgets = await _budgetService.CopyPreviousMonthAsync(userId, year, month);
+        return Ok(budgets);
+    }
+
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateBudgetRequest request)
     {

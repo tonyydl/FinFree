@@ -58,6 +58,25 @@ function handleAdd() {
   dialogVisible.value = true
 }
 
+async function handleCopyPreviousMonth() {
+  try {
+    await ElMessageBox.confirm(
+      `確定要將上月預算複製到 ${monthLabel.value} 嗎？本月已有預算時無法複製。`,
+      '複製上月預算',
+      { confirmButtonText: '複製', cancelButtonText: '取消', type: 'info' },
+    )
+
+    const success = await budgetStore.copyPreviousMonth(currentYear.value, currentMonth.value)
+    if (success) {
+      ElMessage.success('已複製上月預算')
+    } else {
+      ElMessage.error(budgetStore.error ?? '複製上月預算失敗')
+    }
+  } catch {
+    // 使用者取消
+  }
+}
+
 function handleEdit(budget: BudgetResponse) {
   editingBudget.value = budget
   dialogVisible.value = true
@@ -85,7 +104,10 @@ async function handleDelete(budget: BudgetResponse) {
   <div>
     <div class="page-header">
       <h1 style="margin: 0">預算管理</h1>
-      <el-button type="primary" @click="handleAdd">新增預算</el-button>
+      <div class="header-actions">
+        <el-button :loading="budgetStore.loading" @click="handleCopyPreviousMonth">複製上月</el-button>
+        <el-button type="primary" @click="handleAdd">新增預算</el-button>
+      </div>
     </div>
 
     <!-- 月份切換 -->
@@ -97,7 +119,10 @@ async function handleDelete(budget: BudgetResponse) {
 
     <div v-loading="budgetStore.loading">
       <el-empty v-if="budgetStore.budgets.length === 0 && !budgetStore.loading" description="本月尚未設定預算">
-        <el-button type="primary" @click="handleAdd">設定第一筆預算</el-button>
+        <div class="empty-actions">
+          <el-button @click="handleCopyPreviousMonth">複製上月預算</el-button>
+          <el-button type="primary" @click="handleAdd">設定第一筆預算</el-button>
+        </div>
       </el-empty>
 
       <div v-else class="budget-list">
@@ -149,6 +174,13 @@ async function handleDelete(budget: BudgetResponse) {
   margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.header-actions,
+.empty-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .month-nav {

@@ -75,6 +75,22 @@ export const useBudgetStore = defineStore('budget', () => {
     }
   }
 
+  async function copyPreviousMonth(year: number, month: number): Promise<boolean> {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.post<BudgetResponse[]>(`/budgets/${year}/${month}/copy-previous`)
+      budgets.value = response.data
+      return true
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } }
+      error.value = axiosErr.response?.data?.message ?? '複製上月預算失敗'
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     budgets,
     loading,
@@ -83,5 +99,6 @@ export const useBudgetStore = defineStore('budget', () => {
     createBudget,
     updateBudget,
     deleteBudget,
+    copyPreviousMonth,
   }
 })

@@ -101,6 +101,42 @@ public class BudgetService : IBudgetService
         };
     }
 
+    public async Task<IEnumerable<BudgetResponse>> CopyPreviousMonthAsync(int userId, int year, int month)
+    {
+        if (year < 2020 || year > 2100 || month < 1 || month > 12)
+            throw new InvalidOperationException("無效的年份或月份");
+
+        var targetHasBudgets = await _context.Budgets
+            .AnyAsync(b => b.UserId == userId && b.Year == year && b.Month == month);
+
+        if (targetHasBudgets)
+            throw new InvalidOperationException("本月已有預算，無法複製上月預算");
+
+        var previous = new DateTime(year, month, 1).AddMonths(-1);
+        var previousBudgets = await _context.Budgets
+            .Where(b => b.UserId == userId && b.Year == previous.Year && b.Month == previous.Month)
+            .OrderBy(b => b.CategoryId == null ? 0 : 1)
+            .ThenBy(b => b.CategoryId)
+            .ToListAsync();
+
+        if (previousBudgets.Count == 0)
+            throw new InvalidOperationException("上月沒有可複製的預算");
+
+        var copied = previousBudgets.Select(b => new Budget
+        {
+            UserId = userId,
+            CategoryId = b.CategoryId,
+            Amount = b.Amount,
+            Year = year,
+            Month = month,
+        });
+
+        await _context.Budgets.AddRangeAsync(copied);
+        await _context.SaveChangesAsync();
+
+        return await GetByMonthAsync(userId, year, month);
+    }
+
     public async Task<BudgetResponse?> UpdateAsync(int id, UpdateBudgetRequest request, int userId)
     {
         var budget = await _unitOfWork.Budgets
