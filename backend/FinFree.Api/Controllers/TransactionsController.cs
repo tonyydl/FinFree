@@ -95,6 +95,20 @@ public class TransactionsController : BaseController
         return Ok(report);
     }
 
+    [HttpGet("report/range")]
+    public async Task<IActionResult> GetRangeReport([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    {
+        if (startDate.Year < 2000 || startDate.Year > 2100 || endDate.Year < 2000 || endDate.Year > 2100)
+            return BadRequest(new { message = "無效的日期範圍" });
+
+        if (startDate.Date > endDate.Date)
+            return BadRequest(new { message = "開始日期不可晚於結束日期" });
+
+        var userId = GetUserId();
+        var report = await _transactionService.GetRangeReportAsync(startDate, endDate, userId);
+        return Ok(report);
+    }
+
     [HttpGet("statistics")]
     public async Task<IActionResult> GetStatistics([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {

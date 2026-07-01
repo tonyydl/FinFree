@@ -304,10 +304,56 @@ public class TransactionService : ITransactionService
             .Where(t => t.UserId == userId && t.Date >= startDate && t.Date < endDate)
             .ToListAsync();
 
-        var totalIncome = transactions.Where(t => t.Type == TransactionType.Income).Sum(t => t.Amount);
-        var totalExpense = transactions.Where(t => t.Type == TransactionType.Expense).Sum(t => t.Amount);
+        var summary = BuildReportSummary(transactions);
 
-        var expenseByCategory = transactions
+        return new MonthlyReportResponse
+        {
+            Year = year,
+            Month = month,
+            TotalIncome = summary.TotalIncome,
+            TotalExpense = summary.TotalExpense,
+            Balance = summary.TotalIncome - summary.TotalExpense,
+            TransactionCount = summary.TransactionCount,
+            ExpenseByCategory = summary.ExpenseByCategory,
+            IncomeByCategory = summary.IncomeByCategory,
+            DailyExpenses = summary.DailyExpenses,
+        };
+    }
+
+    public async Task<RangeReportResponse> GetRangeReportAsync(DateTime startDate, DateTime endDate, int userId)
+    {
+        var start = DateTime.SpecifyKind(startDate.Date, DateTimeKind.Utc);
+        var endInclusive = DateTime.SpecifyKind(endDate.Date, DateTimeKind.Utc);
+        var endExclusive = endInclusive.AddDays(1);
+
+        var transactions = await _unitOfWork.Transactions.Query()
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId && t.Date >= start && t.Date < endExclusive)
+            .ToListAsync();
+
+        var summary = BuildReportSummary(transactions);
+
+        return new RangeReportResponse
+        {
+            StartDate = start.Date,
+            EndDate = endInclusive.Date,
+            TotalIncome = summary.TotalIncome,
+            TotalExpense = summary.TotalExpense,
+            Balance = summary.TotalIncome - summary.TotalExpense,
+            TransactionCount = summary.TransactionCount,
+            ExpenseByCategory = summary.ExpenseByCategory,
+            IncomeByCategory = summary.IncomeByCategory,
+            DailyExpenses = summary.DailyExpenses,
+        };
+    }
+
+    private static ReportSummary BuildReportSummary(IEnumerable<Transaction> transactions)
+    {
+        var transactionList = transactions.ToList();
+        var totalIncome = transactionList.Where(t => t.Type == TransactionType.Income).Sum(t => t.Amount);
+        var totalExpense = transactionList.Where(t => t.Type == TransactionType.Expense).Sum(t => t.Amount);
+
+        var expenseByCategory = transactionList
             .Where(t => t.Type == TransactionType.Expense)
             .GroupBy(t => t.Category.Name)
             .Select(g => new { Name = g.Key, Amount = g.Sum(t => t.Amount) })
@@ -320,7 +366,7 @@ public class TransactionService : ITransactionService
             })
             .ToList();
 
-        var incomeByCategory = transactions
+        var incomeByCategory = transactionList
             .Where(t => t.Type == TransactionType.Income)
             .GroupBy(t => t.Category.Name)
             .Select(g => new { Name = g.Key, Amount = g.Sum(t => t.Amount) })
@@ -333,7 +379,7 @@ public class TransactionService : ITransactionService
             })
             .ToList();
 
-        var dailyExpenses = transactions
+        var dailyExpenses = transactionList
             .GroupBy(t => t.Date.ToString("yyyy-MM-dd"))
             .Select(g => new DailyExpense
             {
@@ -344,19 +390,22 @@ public class TransactionService : ITransactionService
             .OrderBy(d => d.Date)
             .ToList();
 
-        return new MonthlyReportResponse
-        {
-            Year = year,
-            Month = month,
-            TotalIncome = totalIncome,
-            TotalExpense = totalExpense,
-            Balance = totalIncome - totalExpense,
-            TransactionCount = transactions.Count,
-            ExpenseByCategory = expenseByCategory,
-            IncomeByCategory = incomeByCategory,
-            DailyExpenses = dailyExpenses,
-        };
+        return new ReportSummary(
+            totalIncome,
+            totalExpense,
+            transactionList.Count,
+            expenseByCategory,
+            incomeByCategory,
+            dailyExpenses);
     }
+
+    private sealed record ReportSummary(
+        decimal TotalIncome,
+        decimal TotalExpense,
+        int TransactionCount,
+        List<CategoryBreakdown> ExpenseByCategory,
+        List<CategoryBreakdown> IncomeByCategory,
+        List<DailyExpense> DailyExpenses);
 
     public async Task<PagedResult<TransactionResponse>> GetPagedAsync(TransactionQueryParams query, int userId)
     {

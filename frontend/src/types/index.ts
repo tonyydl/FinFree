@@ -265,3 +265,15 @@ export interface MonthlyReportResponse {
   incomeByCategory: CategoryBreakdown[]
   dailyExpenses: DailyExpense[]
 }
+
+export interface RangeReportResponse {
+  startDate: string
+  endDate: string
+  totalIncome: number
+  totalExpense: number
+  balance: number
+  transactionCount: number
+  expenseByCategory: CategoryBreakdown[]
+  incomeByCategory: CategoryBreakdown[]
+  dailyExpenses: DailyExpense[]
+}
